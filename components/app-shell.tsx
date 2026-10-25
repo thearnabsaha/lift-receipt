@@ -42,13 +42,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-[calc(5.5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 md:pb-12">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 md:pb-12">{children}</main>
       <IdleGuard />
       <DeletesSync />
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
+      {/* Opaque bar. The ::after slab paints solid background far below the bar, so if iOS standalone
+          positions fixed elements above the physical bottom edge, no page content can show underneath. */}
+      <nav data-testid="tab-bar" className="fixed inset-x-0 bottom-0 z-40 border-t bg-background pb-[max(0.25rem,calc(env(safe-area-inset-bottom)-0.75rem))] after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:h-[50vh] after:bg-background after:content-[''] md:hidden">
         <div className="grid grid-cols-5">
           {TABS.map((t) => (
-            <Link key={t.href} href={t.href} prefetch onClick={() => { if (!active(t.href)) setTap({ href: t.href, from: path }); }} className={cn("relative flex min-h-14 touch-manipulation select-none flex-col items-center justify-center gap-1 py-2 text-muted-foreground transition-colors duration-75 active:bg-muted/60", active(t.href) && "text-foreground")}>
+            <Link key={t.href} href={t.href} prefetch onClick={() => { if (!active(t.href)) setTap({ href: t.href, from: path }); }} className={cn("relative flex h-14 touch-manipulation select-none flex-col items-center justify-center gap-1 py-2 text-muted-foreground transition-colors duration-75 active:bg-muted/60", active(t.href) && "text-foreground")}>
               <TabPending />
               <t.icon className="size-5" strokeWidth={active(t.href) ? 2 : 1.5} />
               <span className="font-mono text-[9px] uppercase tracking-widest">{t.label}</span>
