@@ -41,12 +41,22 @@ function useWakeLock(on: boolean) {
   useEffect(() => {
     if (!on || !("wakeLock" in navigator)) return;
     let lock: WakeLockSentinel | null = null;
-    const req = async () => { try { lock = await navigator.wakeLock.request("screen"); } catch {} };
+    // iOS 16.4+ standalone supports this; the lock is dropped whenever the page is hidden, so re-acquire on return.
+    const req = async () => { if (lock && !lock.released) return; try { lock = await navigator.wakeLock.request("screen"); } catch { lock = null; } };
     req();
     const vis = () => { if (document.visibilityState === "visible") req(); };
     document.addEventListener("visibilitychange", vis);
     return () => { document.removeEventListener("visibilitychange", vis); lock?.release().catch(() => {}); };
   }, [on]);
+}
+
+const REST_KEY = "lr-rest-timer";
+function notifyRestOver() {
+  try {
+    if (!("Notification" in window) || Notification.permission !== "granted" || document.visibilityState === "visible") return;
+    const opts = { body: "Rest over. Next set.", tag: "lr-rest", icon: "/icons/icon-192.png" };
+    navigator.serviceWorker?.getRegistration().then((r) => { if (r) return r.showNotification("Lift Receipt", opts); new Notification("Lift Receipt", opts); }).catch(() => {});
+  } catch {}
 }
 
 function beep() {
@@ -63,7 +73,11 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   const settings = useSettings();
   const [st, setSt] = useState<EditorState>(initial);
   const [now, setNow] = useState(() => Date.now());
-  const [rest, setRest] = useState<{ end: number; total: number } | null>(null);
+  // rest timer is stored as an absolute end timestamp, so it stays correct after screen lock / backgrounding
+  const [rest, setRest] = useState<{ end: number; total: number } | null>(() => {
+    if (typeof window === "undefined" || mode !== "live") return null;
+    try { const r = JSON.parse(localStorage.getItem(REST_KEY) ?? "null"); return r && r.end > Date.now() ? r : null; } catch { return null; }
+  });
   const [saving, setSaving] = useState(false);
   const live = mode === "live";
   const showRpe = useShowRpe();
@@ -73,18 +87,25 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   // persist live workout
   useEffect(() => { if (live) localStorage.setItem(ACTIVE_KEY, JSON.stringify(st)); }, [st, live]);
   const restRef = useRef(rest);
-  useEffect(() => { restRef.current = rest; }, [rest]);
+  useEffect(() => { restRef.current = rest; if (live) { if (rest) localStorage.setItem(REST_KEY, JSON.stringify(rest)); else localStorage.removeItem(REST_KEY); } }, [rest, live]);
   useEffect(() => {
     if (!live) return;
-    const t = setInterval(() => {
+    const tick = () => {
       const n = Date.now(); setNow(n);
-      if (restRef.current && n >= restRef.current.end) { restRef.current = null; beep(); toast("Rest over. Next set."); setRest(null); }
-    }, 1000);
-    return () => clearInterval(t);
+      if (restRef.current && n >= restRef.current.end) {
+        const late = n - restRef.current.end > 3000; restRef.current = null; setRest(null);
+        if (!late) { beep(); notifyRestOver(); }
+        toast("Rest over. Next set.");
+      }
+    };
+    const t = setInterval(tick, 500);
+    const vis = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", vis);
+    return () => { clearInterval(t); document.removeEventListener("visibilitychange", vis); };
   }, [live]);
 
   const upd = useCallback((fn: (s: EditorState) => void) => setSt((p) => { const n = structuredClone(p); fn(n); return n; }), []);
-  const startRest = useCallback((sec: number) => { if (sec > 0) setRest({ end: nowMs() + sec * 1000, total: sec }); }, []);
+  const startRest = useCallback((sec: number) => { try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch {} if (sec > 0) setRest({ end: nowMs() + sec * 1000, total: sec }); }, []);
 
   const addExercises = (list: ExerciseLite[], superset: boolean) => upd((s) => {
     const sid = superset ? uid() : null;
@@ -145,7 +166,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
     } finally { setSaving(false); }
   };
 
-  const cancel = () => { localStorage.removeItem(ACTIVE_KEY); router.push("/workout"); };
+  const cancel = () => { localStorage.removeItem(ACTIVE_KEY); localStorage.removeItem(REST_KEY); router.push("/workout"); };
   const elapsed = now - new Date(st.startedAt).getTime();
   const restLeft = rest ? Math.max(0, rest.end - now) : 0;
   const doneSets = st.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
@@ -160,20 +181,20 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         <div className="ml-auto flex gap-2">
           {live && (
             <AlertDialog>
-              <AlertDialogTrigger asChild><Button variant="ghost" size="sm">Cancel</Button></AlertDialogTrigger>
+              <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="h-11 px-4">Cancel</Button></AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader><AlertDialogTitle>Discard workout?</AlertDialogTitle><AlertDialogDescription>All sets in this session will be lost.</AlertDialogDescription></AlertDialogHeader>
                 <AlertDialogFooter><AlertDialogCancel>Keep going</AlertDialogCancel><AlertDialogAction onClick={cancel}>Discard</AlertDialogAction></AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button size="sm" className="bg-success text-white hover:bg-success/80" disabled={saving} onClick={save}>{live ? "Finish" : "Save"}</Button>
+          <Button size="sm" className="h-11 px-5 bg-success text-white hover:bg-success/80" disabled={saving} onClick={save}>{live ? "Finish" : "Save"}</Button>
         </div>
       </div>
 
       <Input value={st.name} onChange={(e) => upd((s) => { s.name = e.target.value; })} placeholder={mode === "routine" ? "Routine name" : "Workout name"}
         className="mb-2 h-auto border-0 bg-transparent px-0 text-2xl font-semibold shadow-none focus-visible:ring-0 md:text-3xl dark:bg-transparent" />
-      {mode === "routine" && <Input value={st.folder} onChange={(e) => upd((s) => { s.folder = e.target.value; })} placeholder="Folder (optional)" className="mb-2 h-9 max-w-xs" />}
+      {mode === "routine" && <Input value={st.folder} onChange={(e) => upd((s) => { s.folder = e.target.value; })} placeholder="Folder (optional)" className="mb-2 h-11 max-w-xs" />}
       {mode === "edit" && (
         <div className="mb-2 grid grid-cols-2 gap-2">
           <label className="text-xs"><span className="mono-label">Start</span>
@@ -206,7 +227,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                   <p className="min-w-0 flex-1 truncate font-semibold text-chart-1">{ex.name}</p>
                   {ex.restSec != null && <span className="mono-label">{ex.restSec}s rest</span>}
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-8" aria-label="Exercise options"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-11" aria-label="Exercise options"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].showNotes = true; })}><StickyNote className="size-4" />Add note</DropdownMenuItem>
                       <DropdownMenuItem onClick={() => { const v = prompt("Rest timer for this exercise (seconds). Empty = default", String(ex.restSec ?? settings.restSec)); if (v !== null) upd((s) => { s.exercises[ei].restSec = v.trim() ? Math.max(0, Number(v) || 0) : null; }); }}><Timer className="size-4" />Rest timer</DropdownMenuItem>
@@ -223,7 +244,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                {ex.showNotes && <Textarea value={ex.notes} onChange={(e) => upd((s) => { s.exercises[ei].notes = e.target.value; })} placeholder="Exercise note" rows={1} className="mb-2 min-h-9 resize-none text-sm" />}
+                {ex.showNotes && <Textarea value={ex.notes} onChange={(e) => upd((s) => { s.exercises[ei].notes = e.target.value; })} placeholder="Exercise note" rows={1} className="mb-2 min-h-11 resize-none text-sm" />}
                 <div className={cn("grid items-center gap-1.5 text-center", showRpe ? "grid-cols-[2rem_1fr_4.2rem_3.6rem_2.8rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5rem_4.5rem_3.5rem_2.5rem]" : "grid-cols-[2rem_1fr_4.6rem_4rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5.5rem_5rem_2.5rem]")}>
                   <span className="mono-label text-[10px]">Set</span><span className="mono-label text-[10px]">Previous</span>
                   <span className="mono-label text-[10px]">{unit}</span><span className="mono-label text-[10px]">Reps</span>{showRpe && <Popover><PopoverTrigger asChild><button type="button" className="mono-label inline-flex items-center justify-center gap-0.5 text-[10px]" aria-label="What is RPE?">RPE<Info className="size-3" /></button></PopoverTrigger><PopoverContent className="w-60 text-xs"><p className="font-semibold">Rate of perceived exertion, 1–10.</p><p className="mt-1 text-muted-foreground">10 = no reps left, 8 = ~2 reps left. Optional. Hide it in Settings.</p></PopoverContent></Popover>}
@@ -235,7 +256,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                       <div key={si} className={cn("contents", s.done && "[&>*]:bg-success/10")}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <button type="button" className={cn("h-9 rounded-md font-mono text-sm font-semibold", s.type === "warmup" && "text-amber-500", s.type === "drop" && "text-chart-1", s.type === "failure" && "text-destructive")}>
+                            <button type="button" className={cn("h-11 rounded-md font-mono text-sm font-semibold", s.type === "warmup" && "text-amber-500", s.type === "drop" && "text-chart-1", s.type === "failure" && "text-destructive")}>
                               {TYPE_LABEL[s.type] || num}
                             </button>
                           </DropdownMenuTrigger>
@@ -245,16 +266,16 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                             <DropdownMenuItem variant="destructive" onClick={() => upd((x) => { x.exercises[ei].sets.splice(si, 1); })}><X className="size-4" />Delete set</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <button type="button" className="h-9 truncate rounded-md font-mono text-xs text-muted-foreground" title="Tap to copy"
+                        <button type="button" className="h-11 truncate rounded-md font-mono text-xs text-muted-foreground" title="Tap to copy"
                           onClick={() => pv && upd((x) => { const t = x.exercises[ei].sets[si]; t.weight = pv.weight == null ? "" : String(toDisplay(pv.weight, unit)); t.reps = pv.reps == null ? "" : String(pv.reps); t.auto = {}; })}>
                           {pv ? `${pv.weight != null ? toDisplay(pv.weight, unit) : "BW"} × ${pv.reps ?? "-"}` : "—"}
                         </button>
-                        <Input inputMode="decimal" aria-label="Weight" className="h-9 px-1 text-center tabular-nums" placeholder={pv?.weight != null ? String(toDisplay(pv.weight, unit)) : ""} value={s.weight} onChange={(e) => { const v = e.target.value.replace(",", "."); upd((x) => { x.exercises[ei].sets = setFieldWithAutofill(x.exercises[ei].sets, si, "weight", v); }); }} />
-                        <Input inputMode="numeric" aria-label="Reps" className="h-9 px-1 text-center tabular-nums" placeholder={pv?.reps != null ? String(pv.reps) : ""} value={s.reps} onChange={(e) => { const v = e.target.value; upd((x) => { x.exercises[ei].sets = setFieldWithAutofill(x.exercises[ei].sets, si, "reps", v); }); }} />
-                        {showRpe && <Input inputMode="decimal" aria-label="RPE" className="h-9 px-1 text-center tabular-nums" value={s.rpe} onChange={(e) => upd((x) => { x.exercises[ei].sets[si].rpe = e.target.value; })} />}
-                        {mode === "routine" ? <button type="button" aria-label="Delete set" className="flex h-9 items-center justify-center text-muted-foreground" onClick={() => upd((x) => { x.exercises[ei].sets.splice(si, 1); })}><X className="size-4" /></button> : (
+                        <Input inputMode="decimal" enterKeyHint="next" aria-label="Weight" className="h-11 px-1 text-center tabular-nums" placeholder={pv?.weight != null ? String(toDisplay(pv.weight, unit)) : ""} value={s.weight} onChange={(e) => { const v = e.target.value.replace(",", "."); upd((x) => { x.exercises[ei].sets = setFieldWithAutofill(x.exercises[ei].sets, si, "weight", v); }); }} />
+                        <Input inputMode="numeric" enterKeyHint="next" aria-label="Reps" className="h-11 px-1 text-center tabular-nums" placeholder={pv?.reps != null ? String(pv.reps) : ""} value={s.reps} onChange={(e) => { const v = e.target.value; upd((x) => { x.exercises[ei].sets = setFieldWithAutofill(x.exercises[ei].sets, si, "reps", v); }); }} />
+                        {showRpe && <Input inputMode="decimal" enterKeyHint="done" aria-label="RPE" className="h-11 px-1 text-center tabular-nums" value={s.rpe} onChange={(e) => upd((x) => { x.exercises[ei].sets[si].rpe = e.target.value; })} />}
+                        {mode === "routine" ? <button type="button" aria-label="Delete set" className="flex h-11 items-center justify-center text-muted-foreground" onClick={() => upd((x) => { x.exercises[ei].sets.splice(si, 1); })}><X className="size-4" /></button> : (
                           <button type="button" aria-label="Complete set" onClick={() => toggleDone(ei, si)}
-                            className={cn("flex h-9 items-center justify-center rounded-md border transition-colors active:translate-y-px", s.done ? "border-success bg-success text-white" : "bg-muted")}>
+                            className={cn("flex h-11 items-center justify-center rounded-md border transition-colors active:translate-y-px", s.done ? "border-success bg-success text-white" : "bg-muted")}>
                             <Check className="size-4" />
                           </button>
                         )}
@@ -262,7 +283,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                     );
                   })}
                 </div>
-                <Button variant="ghost" size="sm" className="mt-2 w-full border border-dashed" onClick={() => upd((s) => { const e = s.exercises[ei]; const pv = prev[e.exerciseId]?.[e.sets.length]; e.sets.push(nextSet(e.sets, pv ? { type: pv.type, weight: pv.weight == null ? "" : String(toDisplay(pv.weight, s.unit)), reps: pv.reps == null ? "" : String(pv.reps) } : null)); })}>
+                <Button variant="ghost" size="sm" className="mt-2 h-11 w-full border border-dashed" onClick={() => upd((s) => { const e = s.exercises[ei]; const pv = prev[e.exerciseId]?.[e.sets.length]; e.sets.push(nextSet(e.sets, pv ? { type: pv.type, weight: pv.weight == null ? "" : String(toDisplay(pv.weight, s.unit)), reps: pv.reps == null ? "" : String(pv.reps) } : null)); })}>
                   <Plus className="size-4" />Add set
                 </Button>
               </div>

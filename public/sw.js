@@ -1,8 +1,11 @@
 // Lift Receipt service worker: offline app shell + static asset cache.
-const VERSION = "lr-v1";
-const SHELL = ["/offline", "/workout", "/workout/active", "/icons/icon-192.png", "/icon.svg"];
+const VERSION = "lr-v2";
+const SHELL = ["/offline", "/workout", "/workout/active", "/dashboard", "/history", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/icon.svg"];
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(VERSION).then((c) => Promise.allSettled(SHELL.map((u) => c.add(new Request(u, { credentials: "include" }))))).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(VERSION).then((c) => Promise.allSettled(SHELL.map((u) => c.add(new Request(u, { credentials: "include" }))))).then(() => { if (!self.registration.active) return self.skipWaiting(); }));
+});
+// updates wait until the page asks (via the "New version available" prompt)
+self.addEventListener("message", (e) => { if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION).map((k) => caches.delete(k)))).then(() => self.clients.claim()));

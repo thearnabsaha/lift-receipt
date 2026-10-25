@@ -20,7 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const active = (h: string) => path === h || path.startsWith(h + "/");
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md pt-[env(safe-area-inset-top)]">
+      <header className="sticky top-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] z-40 border-b bg-background/90 backdrop-blur-md pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex h-[58px] max-w-5xl items-center gap-4 px-4">
           <Link href="/dashboard"><Logo /></Link>
           <nav className="ml-4 hidden items-center gap-1 md:flex">
@@ -30,17 +30,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="ml-auto flex items-center gap-1">
             <OfflineBadge />
-            <Link href="/tools" aria-label="Tools" className={cn("inline-flex size-9 items-center justify-center rounded-lg hover:bg-muted", active("/tools") && "bg-muted")}><Calculator className="size-4" strokeWidth={1.5} /></Link>
-            <Link href="/settings" aria-label="Settings" className={cn("inline-flex size-9 items-center justify-center rounded-lg hover:bg-muted", active("/settings") && "bg-muted")}><Settings className="size-4" strokeWidth={1.5} /></Link>
+            <Link href="/tools" aria-label="Tools" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/tools") && "bg-muted")}><Calculator className="size-4" strokeWidth={1.5} /></Link>
+            <Link href="/settings" aria-label="Settings" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/settings") && "bg-muted")}><Settings className="size-4" strokeWidth={1.5} /></Link>
             <ThemeToggle />
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-6 md:pb-12">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 md:pb-12">{children}</main>
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
         <div className="grid grid-cols-5">
           {TABS.map((t) => (
-            <Link key={t.href} href={t.href} className={cn("flex flex-col items-center gap-1 py-2.5 text-muted-foreground", active(t.href) && "text-foreground")}>
+            <Link key={t.href} href={t.href} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 py-2 text-muted-foreground", active(t.href) && "text-foreground")}>
               <t.icon className="size-5" strokeWidth={active(t.href) ? 2 : 1.5} />
               <span className="font-mono text-[9px] uppercase tracking-widest">{t.label}</span>
             </Link>

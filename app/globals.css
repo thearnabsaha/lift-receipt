@@ -129,6 +129,19 @@
   }
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html, body {
+    overscroll-behavior-y: none;
+  }
+  a, button, input, select, textarea, label, [role="button"] {
+    touch-action: manipulation;
+  }
+  /* iOS zooms on focus when font-size < 16px */
+  @supports (-webkit-touch-callout: none) {
+    input, select, textarea { font-size: max(16px, 1em) !important; }
   }
 }
 

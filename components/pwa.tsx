@@ -10,12 +10,34 @@ type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ out
 export function PwaRegister() {
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
-      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+      let reloading = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => { if (reloading) return; reloading = true; window.location.reload(); });
+      const prompt = (w: ServiceWorker) => toast("New version available", { duration: Infinity, id: "sw-update", action: { label: "Reload", onClick: () => w.postMessage("SKIP_WAITING") } });
+      navigator.serviceWorker.register("/sw.js", { scope: "/", updateViaCache: "none" }).then((reg) => {
+        if (reg.waiting && navigator.serviceWorker.controller) prompt(reg.waiting);
+        reg.addEventListener("updatefound", () => {
+          const w = reg.installing;
+          w?.addEventListener("statechange", () => { if (w.state === "installed" && navigator.serviceWorker.controller) prompt(w); });
+        });
+        // iOS standalone rarely reloads; check for updates when the app comes back to the foreground
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
+      }).catch(() => {});
     }
+    // keep the iOS keyboard from covering the focused input (e.g. the active set row)
+    const reveal = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || !/^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return;
+      const vv = window.visualViewport; const r = el.getBoundingClientRect();
+      const bottom = vv ? vv.height + vv.offsetTop : window.innerHeight;
+      if (r.bottom > bottom - 16 || r.top < 80) el.scrollIntoView({ block: "center", behavior: "smooth" });
+    };
+    const onFocus = () => setTimeout(reveal, 300);
+    document.addEventListener("focusin", onFocus);
+    window.visualViewport?.addEventListener("resize", reveal);
     const flush = () => flushQueue().then((n) => { if (n) toast.success(`Synced ${n} offline workout${n > 1 ? "s" : ""}`); });
     flush();
     window.addEventListener("online", flush);
-    return () => window.removeEventListener("online", flush);
+    return () => { window.removeEventListener("online", flush); document.removeEventListener("focusin", onFocus); window.visualViewport?.removeEventListener("resize", reveal); };
   }, []);
   return null;
 }
