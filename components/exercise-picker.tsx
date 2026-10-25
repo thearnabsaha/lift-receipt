@@ -1,0 +1,112 @@
+"use client";
+import { useMemo, useState } from "react";
+import { Check, Plus, Search } from "lucide-react";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MUSCLES, EQUIPMENT } from "@/lib/data/exercises";
+import { createExerciseAction } from "@/app/actions";
+import { cn } from "@/lib/utils";
+
+export type ExerciseLite = { id: string; name: string; muscle: string; equipment: string; userId?: string | null };
+
+export function ExerciseFilters({ q, setQ, muscle, setMuscle, equipment, setEquipment }: {
+  q: string; setQ: (s: string) => void; muscle: string; setMuscle: (s: string) => void; equipment: string; setEquipment: (s: string) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-2 sm:flex-row">
+      <div className="relative flex-1">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search exercises" className="h-10 pl-9" />
+      </div>
+      <div className="flex gap-2">
+        <Select value={muscle} onValueChange={setMuscle}>
+          <SelectTrigger className="h-10 w-full sm:w-36"><SelectValue placeholder="Muscle" /></SelectTrigger>
+          <SelectContent><SelectItem value="all">Any muscle</SelectItem>{MUSCLES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select value={equipment} onValueChange={setEquipment}>
+          <SelectTrigger className="h-10 w-full sm:w-36"><SelectValue placeholder="Equipment" /></SelectTrigger>
+          <SelectContent><SelectItem value="all">Any equipment</SelectItem>{EQUIPMENT.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+export function useExerciseFilter(list: ExerciseLite[]) {
+  const [q, setQ] = useState(""); const [muscle, setMuscle] = useState("all"); const [equipment, setEquipment] = useState("all");
+  const filtered = useMemo(() => {
+    const ql = q.toLowerCase().trim();
+    return list.filter((e) => (!ql || e.name.toLowerCase().includes(ql)) && (muscle === "all" || e.muscle === muscle) && (equipment === "all" || e.equipment === equipment));
+  }, [list, q, muscle, equipment]);
+  return { filtered, props: { q, setQ, muscle, setMuscle, equipment, setEquipment } };
+}
+
+export function CreateExerciseDialog({ trigger, onCreated, defaultName = "" }: { trigger: React.ReactNode; onCreated?: (e: ExerciseLite) => void; defaultName?: string }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState(defaultName); const [muscle, setMuscle] = useState("Other"); const [equipment, setEquipment] = useState("Other");
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setName(defaultName); }}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>New exercise</DialogTitle></DialogHeader>
+        <form className="space-y-3" onSubmit={async (e) => {
+          e.preventDefault(); if (!name.trim()) return;
+          setBusy(true);
+          try { const ex = await createExerciseAction({ name, muscle, equipment }); toast.success("Exercise created"); onCreated?.(ex); setOpen(false); }
+          catch { toast.error("Could not create exercise"); } finally { setBusy(false); }
+        }}>
+          <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="Exercise name" />
+          <div className="grid grid-cols-2 gap-2">
+            <Select value={muscle} onValueChange={setMuscle}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>{MUSCLES.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select>
+            <Select value={equipment} onValueChange={setEquipment}><SelectTrigger className="w-full"><SelectValue /></SelectTrigger><SelectContent>{EQUIPMENT.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select>
+          </div>
+          <Button type="submit" className="w-full" disabled={busy}>Save exercise</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ExercisePicker({ exercises, onPick, trigger }: { exercises: ExerciseLite[]; onPick: (list: ExerciseLite[], superset: boolean) => void; trigger: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const [extra, setExtra] = useState<ExerciseLite[]>([]);
+  const all = useMemo(() => [...extra, ...exercises], [extra, exercises]);
+  const { filtered, props } = useExerciseFilter(all);
+  const [sel, setSel] = useState<string[]>([]);
+  const pick = (superset: boolean) => { onPick(sel.map((id) => all.find((e) => e.id === id)!), superset); setSel([]); setOpen(false); };
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-3 sm:max-w-lg">
+        <DialogHeader><DialogTitle>Add exercises</DialogTitle></DialogHeader>
+        <ExerciseFilters {...props} />
+        <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
+          {filtered.slice(0, 300).map((e) => {
+            const on = sel.includes(e.id);
+            return (
+              <button key={e.id} type="button" onClick={() => setSel((s) => on ? s.filter((x) => x !== e.id) : [...s, e.id])}
+                className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted/60", on && "bg-muted")}>
+                <span className="flex size-8 items-center justify-center rounded-lg border bg-card font-mono text-xs">{e.name[0]}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{e.name}</span><span className="mono-label text-[10px]">{e.muscle} · {e.equipment}</span></span>
+                {on && <Check className="size-4" />}
+              </button>
+            );
+          })}
+          {!filtered.length && <p className="py-6 text-center text-sm text-muted-foreground">No match.</p>}
+        </div>
+        <div className="flex flex-wrap gap-2 border-t pt-3">
+          <CreateExerciseDialog defaultName={props.q} onCreated={(e) => { setExtra((x) => [e, ...x]); setSel((s) => [...s, e.id]); }}
+            trigger={<Button variant="outline" size="sm"><Plus className="size-4" />New</Button>} />
+          <div className="ml-auto flex gap-2">
+            {sel.length > 1 && <Button variant="outline" size="sm" onClick={() => pick(true)}>Superset ({sel.length})</Button>}
+            <Button size="sm" disabled={!sel.length} onClick={() => pick(false)}>Add{sel.length ? ` (${sel.length})` : ""}</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
