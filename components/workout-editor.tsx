@@ -15,7 +15,10 @@ import { queueWorkout } from "@/lib/offline";
 import { formatDuration, toDisplay, toKg } from "@/lib/calc";
 import type { SetType, WorkoutExercise } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
-import { uid, toEditorExercises, type ESet, type EditorState, type PrevMap } from "@/lib/editor";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Info } from "lucide-react";
+import { useShowRpe } from "@/lib/use-show-rpe";
+import { uid, toEditorExercises, setFieldWithAutofill, nextSet, type ESet, type EditorState, type PrevMap } from "@/lib/editor";
 export { toEditorExercises, type EditorState, type PrevMap };
 
 type Mode = "live" | "edit" | "routine";
@@ -63,6 +66,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   const [rest, setRest] = useState<{ end: number; total: number } | null>(null);
   const [saving, setSaving] = useState(false);
   const live = mode === "live";
+  const showRpe = useShowRpe();
   const unit = st.unit;
   useWakeLock(live);
 
@@ -220,9 +224,9 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                   </DropdownMenu>
                 </div>
                 {ex.showNotes && <Textarea value={ex.notes} onChange={(e) => upd((s) => { s.exercises[ei].notes = e.target.value; })} placeholder="Exercise note" rows={1} className="mb-2 min-h-9 resize-none text-sm" />}
-                <div className="grid grid-cols-[2rem_1fr_4.2rem_3.6rem_2.8rem_2.25rem] items-center gap-1.5 text-center sm:grid-cols-[2.25rem_1fr_5rem_4.5rem_3.5rem_2.5rem]">
+                <div className={cn("grid items-center gap-1.5 text-center", showRpe ? "grid-cols-[2rem_1fr_4.2rem_3.6rem_2.8rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5rem_4.5rem_3.5rem_2.5rem]" : "grid-cols-[2rem_1fr_4.6rem_4rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5.5rem_5rem_2.5rem]")}>
                   <span className="mono-label text-[10px]">Set</span><span className="mono-label text-[10px]">Previous</span>
-                  <span className="mono-label text-[10px]">{unit}</span><span className="mono-label text-[10px]">Reps</span><span className="mono-label text-[10px]">RPE</span>
+                  <span className="mono-label text-[10px]">{unit}</span><span className="mono-label text-[10px]">Reps</span>{showRpe && <Popover><PopoverTrigger asChild><button type="button" className="mono-label inline-flex items-center justify-center gap-0.5 text-[10px]" aria-label="What is RPE?">RPE<Info className="size-3" /></button></PopoverTrigger><PopoverContent className="w-60 text-xs"><p className="font-semibold">Rate of perceived exertion, 1–10.</p><p className="mt-1 text-muted-foreground">10 = no reps left, 8 = ~2 reps left. Optional. Hide it in Settings.</p></PopoverContent></Popover>}
                   <span className="flex justify-center">{mode === "routine" ? "" : <Check className="size-3.5 text-muted-foreground" />}</span>
                   {ex.sets.map((s, si) => {
                     const pv = p?.[si];
@@ -242,12 +246,12 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <button type="button" className="h-9 truncate rounded-md font-mono text-xs text-muted-foreground" title="Tap to copy"
-                          onClick={() => pv && upd((x) => { const t = x.exercises[ei].sets[si]; t.weight = pv.weight == null ? "" : String(toDisplay(pv.weight, unit)); t.reps = pv.reps == null ? "" : String(pv.reps); })}>
+                          onClick={() => pv && upd((x) => { const t = x.exercises[ei].sets[si]; t.weight = pv.weight == null ? "" : String(toDisplay(pv.weight, unit)); t.reps = pv.reps == null ? "" : String(pv.reps); t.auto = {}; })}>
                           {pv ? `${pv.weight != null ? toDisplay(pv.weight, unit) : "BW"} × ${pv.reps ?? "-"}` : "—"}
                         </button>
-                        <Input inputMode="decimal" aria-label="Weight" className="h-9 px-1 text-center tabular-nums" placeholder={pv?.weight != null ? String(toDisplay(pv.weight, unit)) : ""} value={s.weight} onChange={(e) => upd((x) => { x.exercises[ei].sets[si].weight = e.target.value.replace(",", "."); })} />
-                        <Input inputMode="numeric" aria-label="Reps" className="h-9 px-1 text-center tabular-nums" placeholder={pv?.reps != null ? String(pv.reps) : ""} value={s.reps} onChange={(e) => upd((x) => { x.exercises[ei].sets[si].reps = e.target.value; })} />
-                        <Input inputMode="decimal" aria-label="RPE" className="h-9 px-1 text-center tabular-nums" value={s.rpe} onChange={(e) => upd((x) => { x.exercises[ei].sets[si].rpe = e.target.value; })} />
+                        <Input inputMode="decimal" aria-label="Weight" className="h-9 px-1 text-center tabular-nums" placeholder={pv?.weight != null ? String(toDisplay(pv.weight, unit)) : ""} value={s.weight} onChange={(e) => { const v = e.target.value.replace(",", "."); upd((x) => { x.exercises[ei].sets = setFieldWithAutofill(x.exercises[ei].sets, si, "weight", v); }); }} />
+                        <Input inputMode="numeric" aria-label="Reps" className="h-9 px-1 text-center tabular-nums" placeholder={pv?.reps != null ? String(pv.reps) : ""} value={s.reps} onChange={(e) => { const v = e.target.value; upd((x) => { x.exercises[ei].sets = setFieldWithAutofill(x.exercises[ei].sets, si, "reps", v); }); }} />
+                        {showRpe && <Input inputMode="decimal" aria-label="RPE" className="h-9 px-1 text-center tabular-nums" value={s.rpe} onChange={(e) => upd((x) => { x.exercises[ei].sets[si].rpe = e.target.value; })} />}
                         {mode === "routine" ? <button type="button" aria-label="Delete set" className="flex h-9 items-center justify-center text-muted-foreground" onClick={() => upd((x) => { x.exercises[ei].sets.splice(si, 1); })}><X className="size-4" /></button> : (
                           <button type="button" aria-label="Complete set" onClick={() => toggleDone(ei, si)}
                             className={cn("flex h-9 items-center justify-center rounded-md border transition-colors active:translate-y-px", s.done ? "border-success bg-success text-white" : "bg-muted")}>
@@ -258,7 +262,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                     );
                   })}
                 </div>
-                <Button variant="ghost" size="sm" className="mt-2 w-full border border-dashed" onClick={() => upd((s) => { const last = s.exercises[ei].sets.at(-1); s.exercises[ei].sets.push({ ...blankSet(), type: last?.type === "warmup" ? "normal" : last?.type ?? "normal" }); })}>
+                <Button variant="ghost" size="sm" className="mt-2 w-full border border-dashed" onClick={() => upd((s) => { const e = s.exercises[ei]; const pv = prev[e.exerciseId]?.[e.sets.length]; e.sets.push(nextSet(e.sets, pv ? { type: pv.type, weight: pv.weight == null ? "" : String(toDisplay(pv.weight, s.unit)), reps: pv.reps == null ? "" : String(pv.reps) } : null)); })}>
                   <Plus className="size-4" />Add set
                 </Button>
               </div>

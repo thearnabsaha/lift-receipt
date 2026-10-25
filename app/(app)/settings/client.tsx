@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createApiKeyAction, importWorkoutsAction, revokeApiKeyAction, updateSettingsAction } from "@/app/actions";
 import { authClient } from "@/lib/auth-client";
+import { useShowRpe, setShowRpe } from "@/lib/use-show-rpe";
 import { KG_PER_LB } from "@/lib/calc";
 import type { SetType, WorkoutExercise } from "@/lib/db/schema";
 
@@ -53,6 +54,7 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [s, setS] = useState(settings);
+  const showRpe = useShowRpe();
   const [newKey, setNewKey] = useState<string | null>(null);
   const [keyName, setKeyName] = useState("Grok Bot");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -65,6 +67,7 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
           <Row title="Units" desc="Weights are stored in kg and converted for display."><Seg value={s.unit} options={[{ v: "kg", l: "kg" }, { v: "lb", l: "lb" }]} onChange={(unit) => save({ unit })} /></Row>
           <Row title="Theme"><Seg value={(theme ?? "system") as "light" | "dark" | "system"} options={[{ v: "light", l: "Light" }, { v: "dark", l: "Dark" }, { v: "system", l: "Auto" }]} onChange={setTheme} /></Row>
           <Row title="Auto-start rest timer" desc="When you complete a set."><Switch checked={s.autoRest} onCheckedChange={(autoRest) => save({ autoRest })} /></Row>
+          <Row title="Show RPE column" desc="Rate of perceived exertion (1–10) in the workout logger. Saved on this device."><Switch checked={showRpe} onCheckedChange={setShowRpe} /></Row>
           <Row title="Default rest" desc="Seconds. Override per exercise in a workout.">
             <Input className="w-20 text-center" inputMode="numeric" defaultValue={s.restSec} onBlur={(e) => { const v = Math.max(0, Math.min(900, Number(e.target.value) || 0)); if (v !== s.restSec) save({ restSec: v }); }} />
           </Row>
