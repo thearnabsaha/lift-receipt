@@ -10,13 +10,14 @@ export async function saveWorkoutAction(input: Parameters<typeof svc.saveWorkout
   const u = await requireUser();
   const w = await svc.saveWorkout(u.id, input);
   // extra numbers for the finish screen (best effort)
-  let count: number | null = null, prs: number | null = null;
+  let count: number | null = null, prs: number | null = null, prEx: string[] = [];
   try {
     count = await svc.workoutCount(u.id);
     const pr = await svc.workoutPRs(u.id, { id: w.id, startedAt: w.startedAt, exercises: w.exercises });
     prs = pr.reduce((a, m) => a + Object.keys(m).length, 0);
+    prEx = w.exercises.filter((_, i) => Object.keys(pr[i] ?? {}).length > 0).map((e) => e.exerciseId);
   } catch {}
-  return done({ id: w.id, count, prs }) as { id: string; count: number | null; prs: number | null };
+  return done({ id: w.id, count, prs, prEx }) as { id: string; count: number | null; prs: number | null; prEx: string[] };
 }
 export async function deleteWorkoutAction(id: string) {
   const u = await requireUser(); await svc.deleteWorkout(u.id, id); return done();

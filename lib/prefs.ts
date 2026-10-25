@@ -7,6 +7,7 @@ export const PREFS = {
   showRpe: { key: "lr-show-rpe", def: false }, // off unless the user explicitly turned it on ("1")
   soundSet: { key: "lr-sound-set", def: true },
   soundFinish: { key: "lr-sound-finish", def: true },
+  soundSilent: { key: "lr-sound-silent", def: false }, // stronger iOS session only while a sound plays; may pause music
 } as const;
 export type PrefName = keyof typeof PREFS;
 export function readPref(n: PrefName): boolean {

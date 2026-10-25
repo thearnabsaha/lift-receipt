@@ -19,7 +19,7 @@ import { Info } from "lucide-react";
 import { usePref, useIdleHours } from "@/lib/prefs";
 import { IdleDialog } from "@/components/idle-prompt";
 import { idleEndTime, idleMs, isIdle, IDLE_FINISH_FLAG } from "@/lib/idle";
-import { playSetDone, unlockAudio } from "@/lib/sound";
+import { playSetDone } from "@/lib/sound";
 import { SwipeRow } from "@/components/swipe-row";
 import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
@@ -120,7 +120,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       }
       x.done = willBeDone;
     });
-    if (willBeDone && mode !== "routine") { unlockAudio(); playSetDone(); }
+    if (willBeDone && mode !== "routine") { playSetDone(); }
   };
 
   const save = async () => {
@@ -162,7 +162,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       if (live) {
         localStorage.removeItem(ACTIVE_KEY);
         if (res.count) localStorage.setItem("lr-workout-count", String(res.count));
-        setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: res.count, prs: res.prs });
+        setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: res.count, prs: res.prs, prEx: res.prEx });
         return;
       }
       toast.success("Workout updated");

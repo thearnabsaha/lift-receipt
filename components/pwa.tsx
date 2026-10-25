@@ -27,15 +27,6 @@ export function PwaRegister() {
         document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); else if (reg.waiting) reg.waiting.postMessage("SKIP_WAITING"); });
       }).catch(() => {});
     }
-    // iOS: audio can only start inside a user gesture; unlock the shared AudioContext on the first touch
-    // capture phase so it runs before any handler; kept (not once) because iOS can re-suspend the context
-    let snd: typeof import("@/lib/sound") | null = null;
-    import("@/lib/sound").then((m) => { snd = m; m.setPlaybackSession(); });
-    const unlock = () => { if (snd && !snd.audioUnlocked()) snd.unlockAudio(); };
-    const evs = ["touchstart", "pointerdown", "click", "keydown"];
-    for (const ev of evs) document.addEventListener(ev, unlock, { capture: true, passive: true });
-    const onVis = () => { if (document.visibilityState === "visible" && snd) snd.setPlaybackSession(); };
-    document.addEventListener("visibilitychange", onVis);
     // keep the iOS keyboard from covering the focused input (e.g. the active set row)
     const reveal = () => {
       const el = document.activeElement as HTMLElement | null;
@@ -50,7 +41,7 @@ export function PwaRegister() {
     const flush = () => flushQueue().then((n) => { if (n) toast.success(`Synced ${n} offline workout${n > 1 ? "s" : ""}`); });
     flush();
     window.addEventListener("online", flush);
-    return () => { for (const ev of evs) document.removeEventListener(ev, unlock, { capture: true }); document.removeEventListener("visibilitychange", onVis); window.removeEventListener("online", flush); document.removeEventListener("focusin", onFocus); window.visualViewport?.removeEventListener("resize", reveal); };
+    return () => { window.removeEventListener("online", flush); document.removeEventListener("focusin", onFocus); window.visualViewport?.removeEventListener("resize", reveal); };
   }, []);
   return null;
 }
