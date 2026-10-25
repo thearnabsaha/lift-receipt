@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { getSettings, getStats, listWorkouts, personalRecords, progressSummary } from "@/lib/services";
 import { PageHeader, StatStrip } from "@/components/app-shell";
 import { toDisplay } from "@/lib/calc";
-import { WeeklyChart } from "./weekly-chart";
+import { WeeklyChart } from "./weekly-chart-lazy";
 import { WorkoutCard } from "../history/workout-card";
 import { Button } from "@/components/ui/button";
 

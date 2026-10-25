@@ -1,3 +1,4 @@
+import { cache } from "react";
 import "server-only";
 import { and, asc, desc, eq, gte, ilike, isNull, lte, or, sql } from "drizzle-orm";
 import { createHash, randomBytes, randomUUID } from "crypto";
@@ -44,10 +45,11 @@ export const routineInputSchema = z.object({
 });
 
 // ---------- settings ----------
-export async function getSettings(userId: string) {
+/** Deduped per request: the app layout and the page both need it. */
+export const getSettings = cache(async (userId: string) => {
   const [s] = await db.select().from(settings).where(eq(settings.userId, userId));
   return s ?? { userId, unit: "kg", restSec: 120, autoRest: true };
-}
+});
 export async function updateSettings(userId: string, patch: Partial<{ unit: string; restSec: number; autoRest: boolean }>) {
   const cur = await getSettings(userId);
   const next = { ...cur, ...patch, userId };

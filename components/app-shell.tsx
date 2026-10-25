@@ -1,5 +1,6 @@
 "use client";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { User, History, Plus, Dumbbell, Ruler, Calculator, Settings } from "lucide-react";
 import { Logo } from "@/components/logo";
@@ -19,7 +20,10 @@ const TABS = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
-  const active = (h: string) => path === h || path.startsWith(h + "/");
+  // optimistic tab: highlight the tapped tab immediately, until the route actually changes
+  const [tap, setTap] = useState<{ href: string; from: string } | null>(null);
+  const cur = tap && tap.from === path ? tap.href : path;
+  const active = (h: string) => cur === h || cur.startsWith(h + "/");
   return (
     <div className="flex min-h-dvh flex-col">
       <header className="sticky top-0 pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] z-40 border-b bg-background/90 backdrop-blur-md pt-[env(safe-area-inset-top)]">
@@ -44,7 +48,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden">
         <div className="grid grid-cols-5">
           {TABS.map((t) => (
-            <Link key={t.href} href={t.href} className={cn("flex min-h-14 flex-col items-center justify-center gap-1 py-2 text-muted-foreground", active(t.href) && "text-foreground")}>
+            <Link key={t.href} href={t.href} prefetch onClick={() => { if (!active(t.href)) setTap({ href: t.href, from: path }); }} className={cn("relative flex min-h-14 touch-manipulation select-none flex-col items-center justify-center gap-1 py-2 text-muted-foreground transition-colors duration-75 active:bg-muted/60", active(t.href) && "text-foreground")}>
+              <TabPending />
               <t.icon className="size-5" strokeWidth={active(t.href) ? 2 : 1.5} />
               <span className="font-mono text-[9px] uppercase tracking-widest">{t.label}</span>
             </Link>
@@ -89,4 +94,10 @@ export function EmptyState({ line, children }: { line: string; children?: React.
       {children && <div className="mt-4">{children}</div>}
     </div>
   );
+}
+
+/** Thin bar on the tapped tab while its route is still loading. */
+function TabPending() {
+  const { pending } = useLinkStatus();
+  return <span aria-hidden className={cn("absolute inset-x-5 top-0 h-0.5 rounded-full bg-foreground transition-opacity", pending ? "animate-pulse opacity-100 delay-100" : "opacity-0")} />;
 }

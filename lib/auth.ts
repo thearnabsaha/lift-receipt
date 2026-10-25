@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db, schema } from "./db";
@@ -16,9 +17,8 @@ export const auth = betterAuth({
   plugins: [nextCookies()],
 });
 
-export async function getSession() {
-  return auth.api.getSession({ headers: await headers() });
-}
+/** One session lookup per request (layout + page share it); served from the signed cookie cache, no DB hit. */
+export const getSession = cache(async () => auth.api.getSession({ headers: await headers() }));
 
 export async function requireUser() {
   const s = await getSession();
