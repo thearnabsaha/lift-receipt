@@ -1,3 +1,4 @@
+import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireUser } from "@/lib/auth";
@@ -5,7 +6,7 @@ import { listRoutines } from "@/lib/services";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/pwa";
-import { StartWorkout, ResumeBanner, StartRoutineButton, RoutineMenu } from "./start";
+import { StartWorkout, StartRoutineButton, RoutineMenu } from "./start";
 
 export const metadata = { title: "Workout" };
 
@@ -17,7 +18,7 @@ export default async function WorkoutPage() {
   return (
     <div className="mx-auto max-w-3xl">
       <InstallPrompt />
-      <ResumeBanner />
+      <ActiveWorkoutBanner />
       <PageHeader label="Start" title="Start workout" subtitle="Empty session, or pick up a routine." />
       <StartWorkout />
       <div className="mt-10 mb-4 flex items-center justify-between">

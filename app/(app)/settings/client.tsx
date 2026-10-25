@@ -6,12 +6,13 @@ import Papa from "papaparse";
 import { Copy, Download, KeyRound, LogOut, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { playSetDone, testSound, unlockAudio } from "@/lib/sound";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createApiKeyAction, importWorkoutsAction, revokeApiKeyAction, updateSettingsAction } from "@/app/actions";
 import { authClient } from "@/lib/auth-client";
-import { usePref, setPref, useVolume, setVolume } from "@/lib/prefs";
+import { usePref, setPref, useVolume, setVolume, useIdleHours, setIdleHours } from "@/lib/prefs";
 import { KG_PER_LB } from "@/lib/calc";
 import type { SetType, WorkoutExercise } from "@/lib/db/schema";
 
@@ -54,7 +55,7 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [s, setS] = useState(settings);
-  const showRpe = usePref("showRpe"); const soundSet = usePref("soundSet"); const soundFinish = usePref("soundFinish"); const vol = useVolume();
+  const showRpe = usePref("showRpe"); const soundSet = usePref("soundSet"); const soundFinish = usePref("soundFinish"); const vol = useVolume(); const idleH = useIdleHours();
   const [newKey, setNewKey] = useState<string | null>(null);
   const [keyName, setKeyName] = useState("Grok Bot");
   const fileRef = useRef<HTMLInputElement>(null);
@@ -67,9 +68,11 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
           <Row title="Units" desc="Weights are stored in kg and converted for display."><Seg value={s.unit} options={[{ v: "kg", l: "kg" }, { v: "lb", l: "lb" }]} onChange={(unit) => save({ unit })} /></Row>
           <Row title="Theme"><Seg value={(theme ?? "system") as "light" | "dark" | "system"} options={[{ v: "light", l: "Light" }, { v: "dark", l: "Dark" }, { v: "system", l: "Auto" }]} onChange={setTheme} /></Row>
           <Row title="Show RPE column" desc="Rate of perceived exertion (1–10) in the workout logger. Saved on this device."><Switch checked={showRpe} onCheckedChange={(v) => setPref("showRpe", v)} /></Row>
+          <Row title="Idle workout prompt" desc="Ask to finish, resume or discard after no activity."><Seg value={String(idleH)} options={[{ v: "2", l: "2h" }, { v: "3", l: "3h" }, { v: "4", l: "4h" }, { v: "6", l: "6h" }, { v: "0", l: "Off" }]} onChange={(v) => setIdleHours(Number(v))} /></Row>
           <Row title="Sound on set complete" desc="Short tick + haptic. iPhone silent switch mutes it."><Switch checked={soundSet} onCheckedChange={(v) => setPref("soundSet", v)} /></Row>
           <Row title="Sound on workout finish" desc="Chime when you finish a workout."><Switch checked={soundFinish} onCheckedChange={(v) => setPref("soundFinish", v)} /></Row>
-          <Row title="Volume" desc={`${Math.round(vol * 100)}%`}><input type="range" min={0} max={1} step={0.05} value={vol} onChange={(e) => setVolume(Number(e.target.value))} onPointerUp={() => import("@/lib/sound").then((m) => { m.unlockAudio(); m.playSetDone(); })} className="h-11 w-32 accent-foreground" aria-label="Sound volume" /></Row>
+          <Row title="Test sound" desc="Plays the set tick and finish chime. If silent on iPhone, check the volume buttons."><Button variant="outline" size="sm" className="h-10" onClick={() => testSound()}>Test sound</Button></Row>
+          <Row title="Volume" desc={`${Math.round(vol * 100)}%`}><input type="range" min={0} max={1} step={0.05} value={vol} onChange={(e) => setVolume(Number(e.target.value))} onPointerUp={() => { unlockAudio(); playSetDone(); }} className="h-11 w-32 accent-foreground" aria-label="Sound volume" /></Row>
         </div>
       </section>
 

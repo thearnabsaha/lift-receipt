@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 
 const REVEAL = 88;
 /** Row that swipes left to reveal Delete; a long swipe deletes. Vertical scroll stays native (touch-action: pan-y). */
-export function SwipeRow({ onDelete, className, children, disabled }: { onDelete: () => void; className?: string; children: React.ReactNode; disabled?: boolean }) {
+export function SwipeRow({ onDelete, className, children, disabled, label = "Delete set" }: { onDelete: () => void; label?: string; className?: string; children: React.ReactNode; disabled?: boolean }) {
   const [x, setX] = useState(0);
   const [anim, setAnim] = useState(true);
   const g = useRef<{ sx: number; sy: number; base: number; drag: boolean | null; id: number; w: number } | null>(null);
@@ -36,8 +36,8 @@ export function SwipeRow({ onDelete, className, children, disabled }: { onDelete
     else setX(x < -REVEAL / 2 ? -REVEAL : 0);
   };
   return (
-    <div ref={el} className="relative overflow-hidden rounded-md" data-swipe-row>
-      {x < 0 && <button type="button" aria-label="Delete set"
+    <div ref={el} className={cn("relative overflow-hidden", label === "Delete set" ? "rounded-md" : "rounded-xl")} data-swipe-row>
+      {x < 0 && <button type="button" aria-label={label}
         onClick={onDelete}
         className="absolute inset-y-0 right-0 flex items-center justify-end gap-1.5 bg-destructive pr-5 text-sm font-medium text-white"
         style={{ width: Math.max(REVEAL, -x) }}>

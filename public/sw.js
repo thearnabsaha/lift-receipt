@@ -1,6 +1,6 @@
 // Lift Receipt service worker: offline app shell + static asset cache.
-const VERSION = "lr-v2";
-const SHELL = ["/offline", "/workout", "/workout/active", "/dashboard", "/history", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/icon.svg"];
+const VERSION = "lr-v3";
+const SHELL = ["/offline", "/workout", "/workout/active", "/dashboard", "/history", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/icon.svg", "/sounds/click.wav", "/sounds/chime.wav"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => Promise.allSettled(SHELL.map((u) => c.add(new Request(u, { credentials: "include" }))))).then(() => { if (!self.registration.active) return self.skipWaiting(); }));
 });
@@ -14,7 +14,7 @@ self.addEventListener("fetch", (e) => {
   const req = e.request; const url = new URL(req.url);
   if (req.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
   // immutable build assets: cache-first
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || /\.(png|svg|woff2?|ico)$/.test(url.pathname)) {
+  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/") || /\.(png|svg|woff2?|ico|wav)$/.test(url.pathname)) {
     e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok) { const c = res.clone(); caches.open(VERSION).then((x) => x.put(req, c)); } return res; })));
     return;
   }

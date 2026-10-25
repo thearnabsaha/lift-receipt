@@ -20,3 +20,7 @@ const VOL = "lr-sound-volume";
 export function readVolume() { if (typeof window === "undefined") return 0.7; const v = Number(localStorage.getItem(VOL)); return localStorage.getItem(VOL) === null || isNaN(v) ? 0.7 : Math.min(1, Math.max(0, v)); }
 export function useVolume() { return useSyncExternalStore(sub, readVolume, () => 0.7); }
 export function setVolume(v: number) { localStorage.setItem(VOL, String(v)); window.dispatchEvent(new Event(EVT)); }
+import { IDLE_DEFAULT_H, IDLE_PREF_KEY, parseIdleHours } from "@/lib/idle";
+export function readIdleHours() { return typeof window === "undefined" ? IDLE_DEFAULT_H : parseIdleHours(localStorage.getItem(IDLE_PREF_KEY)); }
+export function useIdleHours() { return useSyncExternalStore(sub, readIdleHours, () => IDLE_DEFAULT_H); }
+export function setIdleHours(h: number) { localStorage.setItem(IDLE_PREF_KEY, String(h)); window.dispatchEvent(new Event(EVT)); }

@@ -4,7 +4,8 @@ import { createHash, randomBytes, randomUUID } from "crypto";
 import { z } from "zod";
 import { db, schema } from "./db";
 import type { WorkoutExercise } from "./db/schema";
-import { bestOf, e1rm, emptyBest, round, setPRs, workoutSetCount, workoutVolume, countsForStats, setVolume, type ExerciseBest } from "./calc";
+import { prsAgainst } from "./prs";
+import { bestOf, e1rm, round, workoutSetCount, workoutVolume, countsForStats, setVolume } from "./calc";
 
 const { exercise, routine, workout, measurement, settings, apiKey } = schema;
 const id = () => randomUUID();
@@ -174,9 +175,7 @@ export async function finishWorkout(userId: string, workoutId: string, endedAt =
 /** PR badges for a workout compared with everything before it. */
 export async function workoutPRs(userId: string, w: { id: string; startedAt: Date; exercises: WorkoutExercise[] }) {
   const prior = await db.select().from(workout).where(and(eq(workout.userId, userId), sql`${workout.startedAt} < ${w.startedAt.toISOString()}`));
-  const best = new Map<string, ExerciseBest>();
-  for (const p of prior) for (const e of p.exercises) best.set(e.exerciseId, bestOf(e.sets, best.get(e.exerciseId)));
-  return w.exercises.map((e) => setPRs(e.sets, best.get(e.exerciseId) ?? emptyBest()));
+  return prsAgainst(prior, w);
 }
 
 export function summarizeWorkout(w: typeof workout.$inferSelect) {

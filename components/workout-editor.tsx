@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, ChevronDown, ChevronUp, Link2, MoreHorizontal, Plus, StickyNote, Trash2, Unlink, X, Clock } from "lucide-react";
 import { toast } from "sonner";
@@ -16,7 +16,9 @@ import type { SetType, WorkoutExercise } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
-import { usePref } from "@/lib/prefs";
+import { usePref, useIdleHours } from "@/lib/prefs";
+import { IdleDialog } from "@/components/idle-prompt";
+import { idleEndTime, idleMs, isIdle, IDLE_FINISH_FLAG } from "@/lib/idle";
 import { playSetDone, unlockAudio } from "@/lib/sound";
 import { SwipeRow } from "@/components/swipe-row";
 import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
@@ -58,7 +60,10 @@ function useWakeLock(on: boolean) {
 
 export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; initial: EditorState; exercises: ExerciseLite[]; prev: PrevMap }) {
   const router = useRouter();
-  const [st, setSt] = useState<EditorState>(initial);
+  const [st, setSt] = useState<EditorState>(() => (mode === "live" && !initial.draftId ? { ...initial, draftId: crypto.randomUUID(), lastActivityAt: initial.lastActivityAt ?? new Date().toISOString() } : initial));
+  const endRef = useRef<string | null>(null); // set when finishing from the idle prompt
+  const [idleBusy, setIdleBusy] = useState(false);
+  const idleHours = useIdleHours();
   const [now, setNow] = useState(() => Date.now());
   const [saving, setSaving] = useState(false);
   const live = mode === "live";
@@ -80,7 +85,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", vis); };
   }, [live]);
 
-  const upd = useCallback((fn: (s: EditorState) => void) => setSt((p) => { const n = structuredClone(p); fn(n); return n; }), []);
+  const upd = useCallback((fn: (s: EditorState) => void) => setSt((p) => { const n = structuredClone(p); fn(n); if (mode === "live") n.lastActivityAt = new Date().toISOString(); return n; }), [mode]);
 
   const addExercises = (list: ExerciseLite[], superset: boolean) => upd((s) => {
     const sid = superset ? uid() : null;
@@ -148,8 +153,8 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       catch { await queueRoutineUpdate(upd); toast("Routine update queued. Syncs when online."); }
     }
     const exs = toPayloadExercises(st, live);
-    const id = st.id ?? crypto.randomUUID();
-    const payload = { id, name: st.name || "Workout", notes: st.notes || null, routineId: st.routineId, startedAt: new Date(st.startedAt).toISOString(), endedAt: live ? new Date().toISOString() : st.endedAt, exercises: exs };
+    const id = st.id ?? st.draftId ?? crypto.randomUUID(); // stable per draft: no duplicate rows / queue entries
+    const payload = { id, name: st.name || "Workout", notes: st.notes || null, routineId: st.routineId, startedAt: new Date(st.startedAt).toISOString(), endedAt: live ? (endRef.current ?? new Date().toISOString()) : st.endedAt, exercises: exs };
     setSaving(true);
     try {
       if (!navigator.onLine) throw new Error("offline");
@@ -170,10 +175,23 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         if (c) localStorage.setItem("lr-workout-count", String(c + 1));
         setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: c ? c + 1 : null, prs: null, offline: true });
       } else toast.error("Could not save");
-    } finally { setSaving(false); }
+    } finally { setSaving(false); endRef.current = null; setIdleBusy(false); }
   };
 
+  const finishIdle = () => {
+    if (!toPayloadExercises(st, true).length) { toast.error("No completed sets. Resume or discard."); return; }
+    endRef.current = idleEndTime(st); setIdleBusy(true); void save();
+  };
+  // the app-wide prompt asked us to finish on arrival
+  const flagDone = useRef(false);
+  useEffect(() => {
+    if (!live || flagDone.current || localStorage.getItem(IDLE_FINISH_FLAG) !== "1") return;
+    flagDone.current = true; localStorage.removeItem(IDLE_FINISH_FLAG);
+    const t = setTimeout(finishIdle, 0); return () => clearTimeout(t);
+  });
+
   const cancel = () => { localStorage.removeItem(ACTIVE_KEY); router.push("/workout"); };
+  const idleOpen = live && !finish && !routinePrompt && !idleBusy && !saving && isIdle(st, idleHours, now);
   const cols = cn("grid items-center gap-1.5 text-center", showRpe ? "grid-cols-[2rem_1fr_4.2rem_3.6rem_2.8rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5rem_4.5rem_3.5rem_2.5rem]" : "grid-cols-[2rem_1fr_4.6rem_4rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5.5rem_5rem_2.5rem]");
   const elapsed = now - new Date(st.startedAt).getTime();
   const doneSets = st.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
@@ -188,10 +206,10 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         <div className="ml-auto flex gap-2">
           {live && (
             <AlertDialog>
-              <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="h-11 px-4">Cancel</Button></AlertDialogTrigger>
+              <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="h-11 px-4 text-destructive">Discard workout</Button></AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader><AlertDialogTitle>Discard workout?</AlertDialogTitle><AlertDialogDescription>All sets in this session will be lost.</AlertDialogDescription></AlertDialogHeader>
-                <AlertDialogFooter><AlertDialogCancel>Keep going</AlertDialogCancel><AlertDialogAction onClick={cancel}>Discard</AlertDialogAction></AlertDialogFooter>
+                <AlertDialogFooter><AlertDialogCancel>Keep going</AlertDialogCancel><AlertDialogAction variant="destructive" onClick={cancel}>Discard</AlertDialogAction></AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           )}
@@ -318,6 +336,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
           </div>
         </AlertDialogContent>
       </AlertDialog>
+      {live && <IdleDialog open={idleOpen} idle={idleMs(st, now)} name={st.name} onFinish={finishIdle} onResume={() => upd(() => {})} onDiscard={cancel} />}
       {finish && <FinishScreen s={finish} onClose={() => { router.push(finish.offline ? "/workout" : `/history/${finish.id}`); router.refresh(); }} />}
       <ExercisePicker exercises={exercises} onPick={addExercises} trigger={<Button variant="outline" className="mt-4 h-11 w-full"><Plus className="size-4" />Add exercises</Button>} />
 

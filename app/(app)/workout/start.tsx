@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -61,22 +61,5 @@ export function RoutineMenu({ id }: { id: string }) {
         <DropdownMenuItem variant="destructive" onClick={async () => { if (!confirm("Delete routine?")) return; await deleteRoutineAction(id); toast.success("Routine deleted"); router.refresh(); }}><Trash2 className="size-4" />Delete</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-export function ResumeBanner() {
-  const [name, setName] = useState<string | null>(null);
-  useEffect(() => {
-    const raw = localStorage.getItem(ACTIVE_KEY);
-    const t = setTimeout(() => { if (raw) try { setName((JSON.parse(raw) as EditorState).name); } catch {} }, 0);
-    return () => clearTimeout(t);
-  }, []);
-  if (!name) return null;
-  return (
-    <Link href="/workout/active" className="mb-4 flex items-center gap-3 rounded-xl border border-success/40 bg-success/10 px-4 py-3">
-      <span className="relative flex size-2.5"><span className="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-60" /><span className="relative inline-flex size-2.5 rounded-full bg-success" /></span>
-      <span className="flex-1 text-sm"><span className="font-medium">{name}</span> in progress</span>
-      <span className="text-sm">Resume →</span>
-    </Link>
   );
 }

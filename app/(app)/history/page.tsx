@@ -1,3 +1,4 @@
+import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSettings, listWorkouts } from "@/lib/services";
@@ -5,6 +6,7 @@ import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { HistoryCalendar } from "./calendar";
 import { WorkoutCard } from "./workout-card";
+import { HistoryList } from "./history-list";
 
 export const metadata = { title: "History" };
 
@@ -17,6 +19,7 @@ export default async function HistoryPage({ searchParams }: PageProps<"/history"
   for (const w of list) { const k = w.startedAt.toLocaleDateString("en-US", { month: "long", year: "numeric" }); byMonth.set(k, [...(byMonth.get(k) ?? []), w]); }
   return (
     <div className="mx-auto max-w-3xl">
+      <ActiveWorkoutBanner />
       <PageHeader label={`${list.length} workouts`} title="History" action={
         <div className="flex rounded-full border p-0.5 text-sm">
           <Link href="/history" className={`rounded-full px-3 py-1 ${view === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>List</Link>
@@ -25,12 +28,7 @@ export default async function HistoryPage({ searchParams }: PageProps<"/history"
       {!list.length && <EmptyState line="Nothing logged yet. Your receipts will print here."><Button asChild size="sm"><Link href="/workout">Start a workout</Link></Button></EmptyState>}
       {view === "calendar" ? (
         <HistoryCalendar workouts={list.map((w) => ({ id: w.id, name: w.name, date: w.startedAt.toISOString() }))} />
-      ) : [...byMonth.entries()].map(([m, ws]) => (
-        <section key={m} className="mb-8">
-          <p className="mono-label mb-3">{m} · {ws.length}</p>
-          <div className="space-y-3">{ws.map((w) => <WorkoutCard key={w.id} w={w} unit={s.unit as "kg" | "lb"} />)}</div>
-        </section>
-      ))}
+      ) : <HistoryList rows={[...byMonth.entries()].flatMap(([m, ws]) => ws.map((w) => ({ id: w.id, name: w.name, date: w.startedAt.toISOString(), month: m, card: <WorkoutCard w={w} unit={s.unit as "kg" | "lb"} /> })))} />}
     </div>
   );
 }

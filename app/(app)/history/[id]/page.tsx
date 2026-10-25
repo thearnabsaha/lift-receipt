@@ -26,7 +26,7 @@ export default async function WorkoutDetail({ params }: PageProps<"/history/[id]
         <Link href="/history" className="text-sm text-muted-foreground hover:text-foreground">← History</Link>
         <div className="ml-auto flex gap-2">
           <Button asChild variant="outline" size="sm"><Link href={`/history/${w.id}/edit`}><Pencil className="size-4" />Edit</Link></Button>
-          <DeleteWorkout id={w.id} />
+          <DeleteWorkout id={w.id} name={w.name} date={w.startedAt.toISOString()} />
         </div>
       </div>
       <article className="receipt rounded-xl border px-5 py-8 shadow-[0_1px_3px_#0000001a] sm:px-8">

@@ -5,7 +5,7 @@ export const uid = () => Math.random().toString(36).slice(2, 10);
 export type ESet = { type: SetType; weight: string; reps: string; rpe: string; done: boolean; auto?: { weight?: boolean; reps?: boolean } };
 export type EEx = { key: string; exerciseId: string; name: string; notes: string; showNotes: boolean; supersetId: string | null; restSec: number | null; sets: ESet[] };
 export type RoutineTemplate = { name: string; folder: string | null; notes: string | null; exercises: WorkoutExercise[] };
-export type EditorState = { template?: RoutineTemplate; id?: string; name: string; notes: string; routineId: string | null; folder: string; startedAt: string; endedAt: string | null; unit: "kg" | "lb"; exercises: EEx[] };
+export type EditorState = { template?: RoutineTemplate; id?: string; name: string; notes: string; routineId: string | null; folder: string; startedAt: string; endedAt: string | null; lastActivityAt?: string | null; draftId?: string; unit: "kg" | "lb"; exercises: EEx[] };
 export type PrevMap = Record<string, { weight: number | null; reps: number | null; type: SetType }[]>;
 
 export function toEditorExercises(exs: WorkoutExercise[], unit: "kg" | "lb", keepDone: boolean): EEx[] {

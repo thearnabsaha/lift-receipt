@@ -1,3 +1,4 @@
+import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSettings, getStats, listWorkouts, personalRecords, progressSummary } from "@/lib/services";
@@ -16,6 +17,7 @@ export default async function Dashboard() {
   return (
     <div className="mx-auto max-w-4xl">
       <PageHeader label="Profile" title={u.name || "Athlete"} subtitle={u.email} action={<Button asChild size="sm"><Link href="/workout">Start workout</Link></Button>} />
+      <ActiveWorkoutBanner />
       <StatStrip items={[
         { label: "Workouts", value: stats.totalWorkouts },
         { label: "This week", value: stats.workoutsThisWeek },

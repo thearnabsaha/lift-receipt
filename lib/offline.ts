@@ -1,6 +1,7 @@
 "use client";
 import { get, set } from "idb-keyval";
-import { saveRoutineAction } from "@/app/actions";
+import { deleteWorkoutAction, saveRoutineAction } from "@/app/actions";
+import { mergeDelete, dueDeletes, UNDO_MS, type PendingDelete } from "@/lib/delete-queue";
 import type { WorkoutExercise } from "@/lib/db/schema";
 
 const RKEY = "lr-routine-queue";
@@ -44,7 +45,37 @@ export async function flushQueue(): Promise<number> {
     }
     await set(KEY, left);
     await flushRoutines();
+    await flushDeletes();
     window.dispatchEvent(new Event("lr-queue"));
   } finally { flushing = false; }
   return sent;
+}
+
+/* ---------- deferred / offline workout deletes ---------- */
+const DKEY = "lr-delete-queue";
+const devt = () => window.dispatchEvent(new Event("lr-deletes"));
+export async function pendingDeletes(): Promise<PendingDelete[]> { return (await get(DKEY)) ?? []; }
+/** Hide now, really delete after the undo window (or once back online). Also drops an unsynced copy from the save queue. */
+export async function scheduleDelete(id: string) {
+  await set(DKEY, mergeDelete(await pendingDeletes(), id, Date.now()));
+  const q: Queued[] = (await get(KEY)) ?? [];
+  if (q.some((x) => x.id === id)) { await set(KEY, q.filter((x) => x.id !== id)); window.dispatchEvent(new Event("lr-queue")); }
+  devt();
+  setTimeout(() => { void flushDeletes(); }, UNDO_MS + 200);
+}
+export async function cancelDelete(id: string) { await set(DKEY, (await pendingDeletes()).filter((d) => d.id !== id)); devt(); }
+let dflush = false;
+export async function flushDeletes(): Promise<number> {
+  if (dflush || !navigator.onLine) return 0;
+  dflush = true; let n = 0;
+  try {
+    const all = await pendingDeletes(); const { due } = dueDeletes(all, Date.now());
+    const failed = new Set<string>();
+    for (const d of due) { try { await deleteWorkoutAction(d.id); n++; } catch { failed.add(d.id); } }
+    // re-read: an undo or a new delete may have happened meanwhile
+    const doneIds = new Set(due.map((d) => d.id).filter((i) => !failed.has(i)));
+    await set(DKEY, (await pendingDeletes()).filter((d) => !doneIds.has(d.id)));
+    if (n) devt();
+  } finally { dflush = false; }
+  return n;
 }
