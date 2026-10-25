@@ -1,8 +1,6 @@
 import sharp from "sharp";
 import { writeFileSync } from "node:fs";
-const mark = (fg, bg) => `<path d="M18 12h28v38l-3.5-3-3.5 3-3.5-3-3.5 3-3.5-3-3.5 3-3.5-3-3.5 3z" fill="${fg}"/>
-<rect x="22" y="22" width="20" height="3" rx="1.5" fill="${bg}"/><rect x="21" y="18" width="3" height="11" rx="1" fill="${bg}"/><rect x="40" y="18" width="3" height="11" rx="1" fill="${bg}"/>
-<rect x="22" y="34" width="20" height="2" rx="1" fill="${bg}" opacity=".35"/><rect x="22" y="39" width="13" height="2" rx="1" fill="${bg}" opacity=".35"/>`;
+const mark = (fg, bg) => `<g transform="rotate(-40 32 32)" fill="${fg}"><rect x="10" y="30" width="44" height="4" rx="2"/><rect x="16" y="18" width="8" height="28" rx="3"/><rect x="40" y="18" width="8" height="28" rx="3"/><rect x="10" y="24" width="4" height="16" rx="1.5"/><rect x="50" y="24" width="4" height="16" rx="1.5"/></g>`;
 const any = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0a0a0a"/>${mark("#fafafa", "#0a0a0a")}</svg>`;
 // maskable: full-bleed bg, mark scaled into 80% safe zone
 const maskable = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" fill="#0a0a0a"/><g transform="translate(9.6 9.6) scale(.7)">${mark("#fafafa", "#0a0a0a")}</g></svg>`;
