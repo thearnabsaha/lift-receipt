@@ -4,7 +4,8 @@ import type { SetType, WorkoutExercise } from "@/lib/db/schema";
 export const uid = () => Math.random().toString(36).slice(2, 10);
 export type ESet = { type: SetType; weight: string; reps: string; rpe: string; done: boolean; auto?: { weight?: boolean; reps?: boolean } };
 export type EEx = { key: string; exerciseId: string; name: string; notes: string; showNotes: boolean; supersetId: string | null; restSec: number | null; sets: ESet[] };
-export type EditorState = { id?: string; name: string; notes: string; routineId: string | null; folder: string; startedAt: string; endedAt: string | null; unit: "kg" | "lb"; exercises: EEx[] };
+export type RoutineTemplate = { name: string; folder: string | null; notes: string | null; exercises: WorkoutExercise[] };
+export type EditorState = { template?: RoutineTemplate; id?: string; name: string; notes: string; routineId: string | null; folder: string; startedAt: string; endedAt: string | null; unit: "kg" | "lb"; exercises: EEx[] };
 export type PrevMap = Record<string, { weight: number | null; reps: number | null; type: SetType }[]>;
 
 export function toEditorExercises(exs: WorkoutExercise[], unit: "kg" | "lb", keepDone: boolean): EEx[] {
@@ -48,4 +49,17 @@ export function nextSet(sets: ESet[], prevRow?: { weight: string; reps: string; 
   if (last) return { type: last.type, weight: last.weight, reps: last.reps, rpe: last.rpe, done: false, auto: { weight: last.weight !== "", reps: last.reps !== "" } };
   if (prevRow) return { type: prevRow.type, weight: prevRow.weight, reps: prevRow.reps, rpe: "", done: false, auto: { weight: prevRow.weight !== "", reps: prevRow.reps !== "" } };
   return { type: "normal", weight: "", reps: "", rpe: "", done: false };
+}
+
+/** After a set is removed at `from`, re-link auto-filled values to the set now before them. */
+export function reflowAuto(sets: ESet[], from: number): ESet[] {
+  const out = sets.map((s) => ({ ...s, auto: { ...s.auto } }));
+  for (const f of ["weight", "reps"] as FillField[]) {
+    for (let i = Math.max(1, from); i < out.length; i++) {
+      const s = out[i]; if (s.done) continue;
+      if (!s.auto?.[f]) break;
+      s[f] = out[i - 1][f]; s.auto![f] = s[f].trim() !== "";
+    }
+  }
+  return out;
 }

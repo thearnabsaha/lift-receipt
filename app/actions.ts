@@ -9,7 +9,14 @@ const done = (r: unknown = true) => { revalidatePath("/", "layout"); return r; }
 export async function saveWorkoutAction(input: Parameters<typeof svc.saveWorkout>[1]) {
   const u = await requireUser();
   const w = await svc.saveWorkout(u.id, input);
-  return done({ id: w.id });
+  // extra numbers for the finish screen (best effort)
+  let count: number | null = null, prs: number | null = null;
+  try {
+    count = await svc.workoutCount(u.id);
+    const pr = await svc.workoutPRs(u.id, { id: w.id, startedAt: w.startedAt, exercises: w.exercises });
+    prs = pr.reduce((a, m) => a + Object.keys(m).length, 0);
+  } catch {}
+  return done({ id: w.id, count, prs }) as { id: string; count: number | null; prs: number | null };
 }
 export async function deleteWorkoutAction(id: string) {
   const u = await requireUser(); await svc.deleteWorkout(u.id, id); return done();

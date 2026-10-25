@@ -71,24 +71,29 @@ export function CreateExerciseDialog({ trigger, onCreated, defaultName = "" }: {
   );
 }
 
-export function ExercisePicker({ exercises, onPick, trigger }: { exercises: ExerciseLite[]; onPick: (list: ExerciseLite[], superset: boolean) => void; trigger: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function ExercisePicker({ exercises, onPick, trigger, open: openP, onOpenChange, replace }: {
+  exercises: ExerciseLite[]; onPick: (list: ExerciseLite[], superset: boolean, keepValues: boolean) => void; trigger?: React.ReactNode;
+  open?: boolean; onOpenChange?: (o: boolean) => void; /** single-select "Replace exercise" mode */ replace?: string;
+}) {
+  const [openS, setOpenS] = useState(false);
+  const open = openP ?? openS; const setOpen = (o: boolean) => { setOpenS(o); onOpenChange?.(o); };
+  const [keep, setKeep] = useState(true);
   const [extra, setExtra] = useState<ExerciseLite[]>([]);
   const all = useMemo(() => [...extra, ...exercises], [extra, exercises]);
   const { filtered, props } = useExerciseFilter(all);
   const [sel, setSel] = useState<string[]>([]);
-  const pick = (superset: boolean) => { onPick(sel.map((id) => all.find((e) => e.id === id)!), superset); setSel([]); setOpen(false); };
+  const pick = (superset: boolean) => { onPick(sel.map((id) => all.find((e) => e.id === id)!), superset, keep); setSel([]); setOpen(false); };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="flex max-h-[90dvh] flex-col gap-3 sm:max-w-lg">
-        <DialogHeader><DialogTitle>Add exercises</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{replace ? "Replace exercise" : "Add exercises"}</DialogTitle>{replace && <p className="mono-label text-[10px]">Replacing · {replace}</p>}</DialogHeader>
         <ExerciseFilters {...props} />
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
           {filtered.slice(0, 300).map((e) => {
             const on = sel.includes(e.id);
             return (
-              <button key={e.id} type="button" onClick={() => setSel((s) => on ? s.filter((x) => x !== e.id) : [...s, e.id])}
+              <button key={e.id} type="button" onClick={() => setSel((s) => on ? s.filter((x) => x !== e.id) : replace ? [e.id] : [...s, e.id])}
                 className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted/60", on && "bg-muted")}>
                 <span className="flex size-8 items-center justify-center rounded-lg border bg-card font-mono text-xs">{e.name[0]}</span>
                 <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{e.name}</span><span className="mono-label text-[10px]">{e.muscle} · {e.equipment}</span></span>
@@ -99,11 +104,12 @@ export function ExercisePicker({ exercises, onPick, trigger }: { exercises: Exer
           {!filtered.length && <p className="py-6 text-center text-sm text-muted-foreground">No match.</p>}
         </div>
         <div className="flex flex-wrap gap-2 border-t pt-3">
-          <CreateExerciseDialog defaultName={props.q} onCreated={(e) => { setExtra((x) => [e, ...x]); setSel((s) => [...s, e.id]); }}
+          <CreateExerciseDialog defaultName={props.q} onCreated={(e) => { setExtra((x) => [e, ...x]); setSel((s) => replace ? [e.id] : [...s, e.id]); }}
             trigger={<Button variant="outline" size="sm"><Plus className="size-4" />New</Button>} />
+          {replace && <label className="flex h-9 items-center gap-2 text-xs"><input type="checkbox" className="size-4 accent-foreground" checked={keep} onChange={(e) => setKeep(e.target.checked)} />Keep weights &amp; reps</label>}
           <div className="ml-auto flex gap-2">
-            {sel.length > 1 && <Button variant="outline" size="sm" onClick={() => pick(true)}>Superset ({sel.length})</Button>}
-            <Button size="sm" disabled={!sel.length} onClick={() => pick(false)}>Add{sel.length ? ` (${sel.length})` : ""}</Button>
+            {!replace && sel.length > 1 && <Button variant="outline" size="sm" onClick={() => pick(true)}>Superset ({sel.length})</Button>}
+            <Button size="sm" disabled={!sel.length} onClick={() => pick(false)}>{replace ? "Replace" : "Add"}{replace ? "" : sel.length ? ` (${sel.length})` : ""}</Button>
           </div>
         </div>
       </DialogContent>

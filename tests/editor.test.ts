@@ -23,3 +23,15 @@ test("nextSet copies previous", () => {
   assert.deepEqual([s.weight, s.reps, s.rpe, s.type, s.done, s.auto?.weight], ["20", "10", "8", "drop", false, true]);
   assert.equal(nextSet([]).weight, "");
 });
+
+import { reflowAuto } from "../lib/editor";
+test("reflowAuto re-links auto values after delete", () => {
+  const sets = [
+    { type: "normal" as const, weight: "20", reps: "10", rpe: "", done: false },
+    { type: "normal" as const, weight: "30", reps: "10", rpe: "", done: false, auto: { weight: true, reps: true } },
+    { type: "normal" as const, weight: "50", reps: "8", rpe: "", done: false, auto: { weight: false, reps: false } },
+  ];
+  // simulate deleting a manual 30kg set at index 1 that the auto set copied
+  const r = reflowAuto(sets, 1);
+  assert.equal(r[1].weight, "20"); assert.equal(r[2].weight, "50");
+});

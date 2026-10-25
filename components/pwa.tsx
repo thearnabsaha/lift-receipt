@@ -23,6 +23,9 @@ export function PwaRegister() {
         document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") reg.update().catch(() => {}); });
       }).catch(() => {});
     }
+    // iOS: audio can only start inside a user gesture; unlock the shared AudioContext on the first touch
+    const unlock = () => import("@/lib/sound").then((m) => m.unlockAudio());
+    for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, unlock, { once: true, passive: true });
     // keep the iOS keyboard from covering the focused input (e.g. the active set row)
     const reveal = () => {
       const el = document.activeElement as HTMLElement | null;

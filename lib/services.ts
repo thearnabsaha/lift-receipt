@@ -237,6 +237,11 @@ export async function progressSummary(userId: string, weeks = 12) {
   return [...buckets.values()];
 }
 
+export async function workoutCount(userId: string) {
+  const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(workout).where(eq(workout.userId, userId));
+  return Number(r?.n ?? 0);
+}
+
 export async function getStats(userId: string) {
   const all = await listWorkouts(userId, { limit: 5000 });
   const totalVolume = all.reduce((a, w) => a + workoutVolume(w.exercises), 0);

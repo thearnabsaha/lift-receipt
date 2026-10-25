@@ -18,9 +18,9 @@ function greeting() {
 
 function useStart() {
   const router = useRouter(); const { unit } = useSettings();
-  return (r?: { id: string; name: string; notes: string | null; exercises: WorkoutExercise[] }) => {
+  return (r?: { id: string; name: string; folder?: string | null; notes: string | null; exercises: WorkoutExercise[] }) => {
     if (localStorage.getItem(ACTIVE_KEY) && !confirm("A workout is already in progress. Discard it and start a new one?")) return;
-    const st: EditorState = { name: r?.name ?? greeting(), notes: r?.notes ?? "", routineId: r?.id ?? null, folder: "", startedAt: new Date().toISOString(), endedAt: null, unit, exercises: r ? toEditorExercises(r.exercises, unit, false) : [] };
+    const st: EditorState = { name: r?.name ?? greeting(), notes: r?.notes ?? "", routineId: r?.id ?? null, folder: "", template: r ? { name: r.name, folder: r.folder ?? null, notes: r.notes, exercises: r.exercises } : undefined, startedAt: new Date().toISOString(), endedAt: null, unit, exercises: r ? toEditorExercises(r.exercises, unit, false) : [] };
     localStorage.setItem(ACTIVE_KEY, JSON.stringify(st));
     router.push("/workout/active");
   };
@@ -46,7 +46,7 @@ export function StartWorkout() {
   );
 }
 
-export function StartRoutineButton({ routine }: { routine: { id: string; name: string; notes: string | null; exercises: WorkoutExercise[] } }) {
+export function StartRoutineButton({ routine }: { routine: { id: string; name: string; folder?: string | null; notes: string | null; exercises: WorkoutExercise[] } }) {
   const start = useStart();
   return <Button size="sm" variant="secondary" className="mt-3 w-full" onClick={() => start(routine)}><Play className="size-4" />Start routine</Button>;
 }

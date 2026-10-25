@@ -36,7 +36,7 @@ export default async function WorkoutPage() {
                   <RoutineMenu id={r.id} />
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.exercises.map((e) => `${e.sets.length} × ${e.name}`).join(", ") || "No exercises"}</p>
-                <StartRoutineButton routine={{ id: r.id, name: r.name, notes: r.notes, exercises: r.exercises }} />
+                <StartRoutineButton routine={{ id: r.id, name: r.name, folder: r.folder, notes: r.notes, exercises: r.exercises }} />
               </div>
             ))}
           </div>

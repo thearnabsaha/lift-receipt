@@ -17,6 +17,7 @@
     "cn": "^0.4.0",
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.4",
+    "html-to-image": "^1.11.13",
     "idb-keyval": "^6.3.0",
     "lucide-react": "^1.61.0",
     "mcp-handler": "^2.3.0",
