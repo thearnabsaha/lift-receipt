@@ -37,7 +37,3 @@ export function playFinish() {
   [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => tone(f, i * 0.11, 0.5, "sine", 0.3));
   tone(2093, 0.44, 0.6, "triangle", 0.08); buzz([20, 60, 20, 60, 40]);
 }
-/** Rest timer over (always plays; it's an alert). */
-export function playRestEnd() {
-  tone(880, 0, 0.22, "square", 0.12); tone(880, 0.32, 0.22, "square", 0.12); tone(1175, 0.64, 0.35, "square", 0.12); buzz([200, 100, 200]);
-}

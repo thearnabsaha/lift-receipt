@@ -7,7 +7,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const u = await requireUser();
   const s = await getSettings(u.id);
   return (
-    <SettingsProvider value={{ unit: s.unit as UserSettings["unit"], restSec: s.restSec, autoRest: s.autoRest }}>
+    <SettingsProvider value={{ unit: s.unit as UserSettings["unit"] }}>
       <AppShell>{children}</AppShell>
     </SettingsProvider>
   );

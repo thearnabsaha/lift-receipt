@@ -1,7 +1,7 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, ChevronUp, Link2, MoreHorizontal, Plus, StickyNote, Timer, Trash2, Unlink, X, Clock } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, Link2, MoreHorizontal, Plus, StickyNote, Trash2, Unlink, X, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ExercisePicker, type ExerciseLite } from "@/components/exercise-picker";
-import { useSettings } from "@/components/settings-context";
 import { saveRoutineAction, saveWorkoutAction } from "@/app/actions";
 import { queueWorkout } from "@/lib/offline";
 import { formatDuration, toDisplay, toKg } from "@/lib/calc";
@@ -18,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
 import { usePref } from "@/lib/prefs";
-import { playRestEnd, playSetDone, unlockAudio } from "@/lib/sound";
+import { playSetDone, unlockAudio } from "@/lib/sound";
 import { SwipeRow } from "@/components/swipe-row";
 import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
@@ -29,7 +28,6 @@ export { toEditorExercises, type EditorState, type PrevMap };
 
 type Mode = "live" | "edit" | "routine";
 
-const nowMs = () => Date.now();
 export const ACTIVE_KEY = "lr-active-workout";
 const blankSet = (): ESet => ({ type: "normal", weight: "", reps: "", rpe: "", done: false });
 const TYPE_LABEL: Record<SetType, string> = { warmup: "W", normal: "", drop: "D", failure: "F" };
@@ -56,26 +54,12 @@ function useWakeLock(on: boolean) {
   }, [on]);
 }
 
-const REST_KEY = "lr-rest-timer";
-function notifyRestOver() {
-  try {
-    if (!("Notification" in window) || Notification.permission !== "granted" || document.visibilityState === "visible") return;
-    const opts = { body: "Rest over. Next set.", tag: "lr-rest", icon: "/icons/icon-192.png" };
-    navigator.serviceWorker?.getRegistration().then((r) => { if (r) return r.showNotification("Lift Receipt", opts); new Notification("Lift Receipt", opts); }).catch(() => {});
-  } catch {}
-}
 
 
 export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; initial: EditorState; exercises: ExerciseLite[]; prev: PrevMap }) {
   const router = useRouter();
-  const settings = useSettings();
   const [st, setSt] = useState<EditorState>(initial);
   const [now, setNow] = useState(() => Date.now());
-  // rest timer is stored as an absolute end timestamp, so it stays correct after screen lock / backgrounding
-  const [rest, setRest] = useState<{ end: number; total: number } | null>(() => {
-    if (typeof window === "undefined" || mode !== "live") return null;
-    try { const r = JSON.parse(localStorage.getItem(REST_KEY) ?? "null"); return r && r.end > Date.now() ? r : null; } catch { return null; }
-  });
   const [saving, setSaving] = useState(false);
   const live = mode === "live";
   const showRpe = usePref("showRpe");
@@ -87,18 +71,9 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
 
   // persist live workout
   useEffect(() => { if (live) localStorage.setItem(ACTIVE_KEY, JSON.stringify(st)); }, [st, live]);
-  const restRef = useRef(rest);
-  useEffect(() => { restRef.current = rest; if (live) { if (rest) localStorage.setItem(REST_KEY, JSON.stringify(rest)); else localStorage.removeItem(REST_KEY); } }, [rest, live]);
   useEffect(() => {
     if (!live) return;
-    const tick = () => {
-      const n = Date.now(); setNow(n);
-      if (restRef.current && n >= restRef.current.end) {
-        const late = n - restRef.current.end > 3000; restRef.current = null; setRest(null);
-        if (!late) { playRestEnd(); notifyRestOver(); }
-        toast("Rest over. Next set.");
-      }
-    };
+    const tick = () => setNow(Date.now());
     const t = setInterval(tick, 500);
     const vis = () => { if (document.visibilityState === "visible") tick(); };
     document.addEventListener("visibilitychange", vis);
@@ -106,7 +81,6 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   }, [live]);
 
   const upd = useCallback((fn: (s: EditorState) => void) => setSt((p) => { const n = structuredClone(p); fn(n); return n; }), []);
-  const startRest = useCallback((sec: number) => { try { if ("Notification" in window && Notification.permission === "default") Notification.requestPermission().catch(() => {}); } catch {} if (sec > 0) setRest({ end: nowMs() + sec * 1000, total: sec }); }, []);
 
   const addExercises = (list: ExerciseLite[], superset: boolean) => upd((s) => {
     const sid = superset ? uid() : null;
@@ -142,11 +116,6 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       x.done = willBeDone;
     });
     if (willBeDone && mode !== "routine") { unlockAudio(); playSetDone(); }
-    if (willBeDone && live && settings.autoRest) {
-      // in a superset, rest only after the last exercise of the group
-      const grp = ex.supersetId ? st.exercises.filter((e) => e.supersetId === ex.supersetId) : [ex];
-      if (grp[grp.length - 1].key === ex.key) startRest(ex.restSec ?? settings.restSec);
-    }
   };
 
   const save = async () => {
@@ -186,7 +155,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       if (!navigator.onLine) throw new Error("offline");
       const res = await saveWorkoutAction(payload);
       if (live) {
-        localStorage.removeItem(ACTIVE_KEY); localStorage.removeItem(REST_KEY); setRest(null);
+        localStorage.removeItem(ACTIVE_KEY);
         if (res.count) localStorage.setItem("lr-workout-count", String(res.count));
         setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: res.count, prs: res.prs });
         return;
@@ -196,7 +165,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
     } catch {
       if (live) {
         await queueWorkout(id, payload);
-        localStorage.removeItem(ACTIVE_KEY); localStorage.removeItem(REST_KEY); setRest(null);
+        localStorage.removeItem(ACTIVE_KEY);
         const c = Number(localStorage.getItem("lr-workout-count")) || 0;
         if (c) localStorage.setItem("lr-workout-count", String(c + 1));
         setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: c ? c + 1 : null, prs: null, offline: true });
@@ -204,10 +173,9 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
     } finally { setSaving(false); }
   };
 
-  const cancel = () => { localStorage.removeItem(ACTIVE_KEY); localStorage.removeItem(REST_KEY); router.push("/workout"); };
+  const cancel = () => { localStorage.removeItem(ACTIVE_KEY); router.push("/workout"); };
   const cols = cn("grid items-center gap-1.5 text-center", showRpe ? "grid-cols-[2rem_1fr_4.2rem_3.6rem_2.8rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5rem_4.5rem_3.5rem_2.5rem]" : "grid-cols-[2rem_1fr_4.6rem_4rem_2.25rem] sm:grid-cols-[2.25rem_1fr_5.5rem_5rem_2.5rem]");
   const elapsed = now - new Date(st.startedAt).getTime();
-  const restLeft = rest ? Math.max(0, rest.end - now) : 0;
   const doneSets = st.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done).length, 0);
   const volume = st.exercises.reduce((a, e) => a + e.sets.filter((s) => s.done && s.type !== "warmup").reduce((b, s) => b + (Number(s.weight) || 0) * (Number(s.reps) || 0), 0), 0);
 
@@ -264,12 +232,10 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
               <div className="rounded-xl border bg-card p-3 shadow-[0_1px_3px_#0000001a]">
                 <div className="mb-2 flex items-center gap-2">
                   <p className="min-w-0 flex-1 truncate font-semibold text-chart-1">{ex.name}</p>
-                  {ex.restSec != null && <span className="mono-label">{ex.restSec}s rest</span>}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-11" aria-label="Exercise options"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].showNotes = true; })}><StickyNote className="size-4" />Add note</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => { const v = prompt("Rest timer for this exercise (seconds). Empty = default", String(ex.restSec ?? settings.restSec)); if (v !== null) upd((s) => { s.exercises[ei].restSec = v.trim() ? Math.max(0, Number(v) || 0) : null; }); }}><Timer className="size-4" />Rest timer</DropdownMenuItem>
                       {ei < st.exercises.length - 1 && (
                         inSS ? <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].supersetId = null; })}><Unlink className="size-4" />Remove from superset</DropdownMenuItem>
                           : <DropdownMenuItem onClick={() => upd((s) => { const id = s.exercises[ei + 1].supersetId ?? uid(); s.exercises[ei].supersetId = id; s.exercises[ei + 1].supersetId = id; })}><Link2 className="size-4" />Superset with next</DropdownMenuItem>
@@ -355,27 +321,6 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       {finish && <FinishScreen s={finish} onClose={() => { router.push(finish.offline ? "/workout" : `/history/${finish.id}`); router.refresh(); }} />}
       <ExercisePicker exercises={exercises} onPick={addExercises} trigger={<Button variant="outline" className="mt-4 h-11 w-full"><Plus className="size-4" />Add exercises</Button>} />
 
-      {live && rest && (
-        <div className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-50 mx-auto w-[calc(100%-2rem)] max-w-md md:bottom-6">
-          <div className="overflow-hidden rounded-xl border bg-popover shadow-lg">
-            <div className="h-1 bg-chart-1 transition-[width] duration-1000 ease-linear" style={{ width: `${(restLeft / (rest.total * 1000)) * 100}%` }} />
-            <div className="flex items-center gap-2 px-3 py-2">
-              <Timer className="size-4" /><span className="mono-label">Rest</span>
-              <span className="text-xl font-semibold tabular-nums">{formatDuration(restLeft)}</span>
-              <div className="ml-auto flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => setRest((r) => r && { ...r, end: Math.max(nowMs(), r.end - 15000), total: Math.max(1, r.total - 15) })}>−15</Button>
-                <Button size="sm" variant="outline" onClick={() => setRest((r) => r && { end: r.end + 15000, total: r.total + 15 })}>+15</Button>
-                <Button size="sm" onClick={() => setRest(null)}>Skip</Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {live && !rest && (
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {[60, 90, 120, 180].map((s) => <Button key={s} size="sm" variant="ghost" className="font-mono text-xs" onClick={() => startRest(s)}><Timer className="size-3" />{s}s</Button>)}
-        </div>
-      )}
     </div>
   );
 }

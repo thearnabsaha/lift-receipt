@@ -50,7 +50,7 @@ function parseCsv(text: string) {
   return [...map.values()].map((w) => ({ name: w.name, notes: w.notes || null, startedAt: w.startedAt.toISOString(), endedAt: new Date(+w.startedAt + w.dur * 60000).toISOString(), exercises: [...w.exercises.values()] }));
 }
 
-export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { unit: "kg" | "lb"; restSec: number; autoRest: boolean }; keys: Key[]; mcpUrl: string; email: string }) {
+export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { unit: "kg" | "lb" }; keys: Key[]; mcpUrl: string; email: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [s, setS] = useState(settings);
@@ -66,14 +66,10 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
         <div className="rounded-xl border bg-card">
           <Row title="Units" desc="Weights are stored in kg and converted for display."><Seg value={s.unit} options={[{ v: "kg", l: "kg" }, { v: "lb", l: "lb" }]} onChange={(unit) => save({ unit })} /></Row>
           <Row title="Theme"><Seg value={(theme ?? "system") as "light" | "dark" | "system"} options={[{ v: "light", l: "Light" }, { v: "dark", l: "Dark" }, { v: "system", l: "Auto" }]} onChange={setTheme} /></Row>
-          <Row title="Auto-start rest timer" desc="When you complete a set."><Switch checked={s.autoRest} onCheckedChange={(autoRest) => save({ autoRest })} /></Row>
           <Row title="Show RPE column" desc="Rate of perceived exertion (1–10) in the workout logger. Saved on this device."><Switch checked={showRpe} onCheckedChange={(v) => setPref("showRpe", v)} /></Row>
           <Row title="Sound on set complete" desc="Short tick + haptic. iPhone silent switch mutes it."><Switch checked={soundSet} onCheckedChange={(v) => setPref("soundSet", v)} /></Row>
           <Row title="Sound on workout finish" desc="Chime when you finish a workout."><Switch checked={soundFinish} onCheckedChange={(v) => setPref("soundFinish", v)} /></Row>
           <Row title="Volume" desc={`${Math.round(vol * 100)}%`}><input type="range" min={0} max={1} step={0.05} value={vol} onChange={(e) => setVolume(Number(e.target.value))} onPointerUp={() => import("@/lib/sound").then((m) => { m.unlockAudio(); m.playSetDone(); })} className="h-11 w-32 accent-foreground" aria-label="Sound volume" /></Row>
-          <Row title="Default rest" desc="Seconds. Override per exercise in a workout.">
-            <Input className="w-20 text-center" inputMode="numeric" defaultValue={s.restSec} onBlur={(e) => { const v = Math.max(0, Math.min(900, Number(e.target.value) || 0)); if (v !== s.restSec) save({ restSec: v }); }} />
-          </Row>
         </div>
       </section>
 

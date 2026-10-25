@@ -35,7 +35,7 @@ export async function createExerciseAction(d: { name: string; muscle: string; eq
 export async function deleteExerciseAction(id: string) {
   const u = await requireUser(); await svc.deleteExercise(u.id, id); return done();
 }
-export async function updateSettingsAction(p: { unit?: string; restSec?: number; autoRest?: boolean }) {
+export async function updateSettingsAction(p: { unit?: string }) {
   const u = await requireUser(); const s = await svc.updateSettings(u.id, p); done(); return s;
 }
 export async function logMeasurementAction(d: { kind: string; value: number; date?: string }) {
