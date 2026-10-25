@@ -190,7 +190,7 @@ const handler = createMcpHandler(
       inputSchema: z.object({}),
     }, async (_a, ctx) => { const u = uid(ctx); return ok({ ...(await svc.getStats(u)), unit: (await svc.getSettings(u)).unit }); });
   },
-  { serverInfo: { name: "lift-receipt", version: "1.0.0" } },
+  { serverInfo: { name: "fortis", version: "1.0.0" } },
 );
 
 const authed = withMcpAuth(handler, async (_req, token) => {

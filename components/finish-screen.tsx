@@ -30,17 +30,17 @@ export function FinishScreen({ s, onClose }: { s: FinishSummary; onClose: () => 
   const d0 = new Date(s.startedAt);
   const dateStr = `${d0.toLocaleDateString("en-GB", { weekday: "long" })}, ${d0.toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
   const fmtSet = (x: ReturnType<typeof bestSet>) => !x ? "—" : x.weight != null && x.weight > 0 ? `${fmtNum(toDisplay(x.weight, s.unit) ?? 0)} ${s.unit} × ${x.reps ?? 0}` : `${x.reps ?? 0} reps`;
-  const text = () => [`${s.name} — ${dateStr}`, `${shortDur(+new Date(s.endedAt) - +new Date(s.startedAt))} · ${fmtNum(vol)} ${s.unit} · ${s.prs ?? 0} PRs`, "", ...exs.map((e) => `${e.sets.filter((x) => x.done).length} × ${e.name}: ${fmtSet(bestSet(e))}`), "", "Lift Receipt"].join("\n");
+  const text = () => [`${s.name} — ${dateStr}`, `${shortDur(+new Date(s.endedAt) - +new Date(s.startedAt))} · ${fmtNum(vol)} ${s.unit} · ${s.prs ?? 0} PRs`, "", ...exs.map((e) => `${e.sets.filter((x) => x.done).length} × ${e.name}: ${fmtSet(bestSet(e))}`), "", "Fortis"].join("\n");
 
   const share = async () => {
     try {
       const { toBlob } = await import("html-to-image");
       const bg = getComputedStyle(document.body).backgroundColor;
       const blob = card.current ? await toBlob(card.current, { pixelRatio: 3, backgroundColor: bg }) : null;
-      const file = blob ? new File([blob], "lift-receipt.png", { type: "image/png" }) : null;
+      const file = blob ? new File([blob], "fortis.png", { type: "image/png" }) : null;
       if (file && navigator.canShare?.({ files: [file] })) return await navigator.share({ files: [file], title: s.name, text: text() });
       if (navigator.share) return await navigator.share({ title: s.name, text: text() });
-      if (blob) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "lift-receipt.png"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+      if (blob) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "fortis.png"; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
       await navigator.clipboard?.writeText(text()); toast.success("Summary copied" + (blob ? " · image downloaded" : ""));
     } catch (e) { if ((e as Error)?.name !== "AbortError") { try { await navigator.clipboard.writeText(text()); toast.success("Summary copied"); } catch { toast.error("Could not share"); } } }
   };
@@ -67,7 +67,7 @@ export function FinishScreen({ s, onClose }: { s: FinishSummary; onClose: () => 
           <div className="lr-print mt-7 drop-shadow-[0_1px_2px_rgb(0_0_0/0.08)] dark:drop-shadow-none">
             <div ref={card} className="receipt rounded-sm px-6 pb-6 pt-7">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="mono-label text-[10px]">Lift Receipt</p>
+                <p className="mono-label text-[10px]">Fortis</p>
                 <p className="mono-label text-[10px]">{d0.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</p>
               </div>
               <p className="mt-3 truncate text-xl font-semibold tracking-tight">{s.name}</p>

@@ -83,7 +83,7 @@ export function InstallPrompt() {
     <div className="receipt mx-auto mb-4 flex w-full items-center gap-3 rounded-xl border px-4 py-4 shadow-[0_1px_3px_#0000001a]">
       <Download className="size-5 shrink-0" strokeWidth={1.5} />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Install Lift Receipt</p>
+        <p className="text-sm font-medium">Install Fortis</p>
         <p className="text-xs text-muted-foreground">
           {ios ? <>Tap <Share className="inline size-3" /> Share, then &ldquo;Add to Home Screen&rdquo;.</> : "Full screen, works offline, one tap from your home screen."}
         </p>

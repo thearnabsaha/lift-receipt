@@ -13,6 +13,6 @@ export async function GET() {
     for (const e of w.exercises) e.sets.forEach((st, i) => rows.push([w.startedAt.toISOString(), w.name, String(dur), e.name, String(i + 1), st.type, String(st.weight ?? ""), String(st.reps ?? ""), String(st.rpe ?? ""), e.notes ?? "", w.notes ?? "", e.supersetId ?? ""]));
   }
   return new Response(rows.map((r) => r.map(esc).join(",")).join("\n"), {
-    headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="lift-receipt-${new Date().toISOString().slice(0, 10)}.csv"` },
+    headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="fortis-${new Date().toISOString().slice(0, 10)}.csv"` },
   });
 }

@@ -30,7 +30,7 @@ export default async function WorkoutDetail({ params }: PageProps<"/history/[id]
         </div>
       </div>
       <article className="receipt rounded-xl border px-5 py-8 shadow-[0_1px_3px_#0000001a] sm:px-8">
-        <p className="mono-label text-center">Lift Receipt · No. {w.id.slice(0, 8).toUpperCase()}</p>
+        <p className="mono-label text-center">Fortis · No. {w.id.slice(0, 8).toUpperCase()}</p>
         <h1 className="mt-2 text-center text-2xl font-semibold tracking-tight">{w.name}</h1>
         <p className="mono-label mt-1 text-center">{w.startedAt.toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" })}</p>
         {w.notes && <p className="mt-3 text-center text-sm text-muted-foreground">{w.notes}</p>}

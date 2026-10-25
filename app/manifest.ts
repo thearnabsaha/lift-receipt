@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Lift Receipt — Workout Tracker",
-    short_name: "Lift Receipt",
+    name: "Fortis — Workout Tracker",
+    short_name: "Fortis",
     description: "Fast gym log: sets, rest timer, PRs, progress charts. Works offline.",
     start_url: "/workout?source=pwa",
     scope: "/",

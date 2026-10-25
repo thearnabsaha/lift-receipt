@@ -16,7 +16,7 @@ export function Logo() {
   return (
     <span className="flex items-center gap-2 font-semibold tracking-tight">
       <LogoMark />
-      <span>Lift Receipt</span>
+      <span>Fortis</span>
     </span>
   );
 }

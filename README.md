@@ -1,4 +1,4 @@
-# Lift Receipt
+# Fortis
 
 A Strong-style workout tracker — mobile-first, installable PWA, with an MCP server so AI assistants (Grok Bot, Claude, Cursor…) can log workouts and read your progress.
 
@@ -13,7 +13,7 @@ Next.js 16 · React 19 · Tailwind v4 · shadcn/ui · Drizzle + Neon Postgres ·
 - **Progress** — per-exercise charts (best e1RM, max weight, volume), rep records; dashboard with weekly chart and streak.
 - **Measurements** — bodyweight, body fat, tape measurements with charts.
 - **Tools** — plate calculator and 1RM calculator (Epley) with % table.
-- **Settings** — kg/lb, rest timer, theme (light/dark/auto), CSV export, CSV import (Lift Receipt or Strong export), API keys.
+- **Settings** — kg/lb, rest timer, theme (light/dark/auto), CSV export, CSV import (Fortis or Strong export), API keys.
 - **PWA** — manifest with maskable icons + shortcuts, service worker (offline shell, cached static assets), offline workout queue in IndexedDB that syncs when back online, install prompt (Android/desktop + iOS hint).
 
 ## Local setup
@@ -32,7 +32,7 @@ Endpoint: `https://<your-domain>/api/mcp` — Streamable HTTP, auth with `Author
 2. In **Grok Bot**: add a custom MCP connector → URL `https://<your-domain>/api/mcp` → header `Authorization: Bearer lr_…`.
 3. Other clients, e.g. Cursor / Claude Desktop `mcp.json`:
 ```json
-{ "mcpServers": { "lift-receipt": { "url": "https://<your-domain>/api/mcp", "headers": { "Authorization": "Bearer lr_..." } } } }
+{ "mcpServers": { "fortis": { "url": "https://<your-domain>/api/mcp", "headers": { "Authorization": "Bearer lr_..." } } } }
 ```
 
 Tools: `list_exercises`, `create_exercise`, `list_routines`, `get_routine`, `create_routine`, `start_workout`, `log_workout`, `add_set`, `finish_workout`, `list_workouts`, `get_workout`, `delete_workout`, `get_exercise_history`, `get_personal_records`, `get_progress_summary`, `log_measurement`, `list_measurements`, `get_stats`.

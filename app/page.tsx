@@ -33,14 +33,14 @@ export default async function Landing() {
           <div>
             <p className="mono-label">Workout tracker · Gym log</p>
             <h1 className="mt-3 text-4xl font-semibold tracking-tight md:text-6xl">Every lift,<br />itemised.</h1>
-            <p className="mt-4 max-w-md text-muted-foreground">Lift Receipt is a fast, no-nonsense gym log. Track sets, beat PRs and see your progress — on your phone, offline, or through your AI assistant.</p>
+            <p className="mt-4 max-w-md text-muted-foreground">Fortis is a fast, no-nonsense gym log. Track sets, beat PRs and see your progress — on your phone, offline, or through your AI assistant.</p>
             <div className="mt-6 flex gap-3">
               <Button asChild size="lg" className="active:translate-y-px"><Link href="/sign-up">Start logging — free</Link></Button>
               <Button asChild size="lg" variant="outline"><Link href="/sign-in">I have an account</Link></Button>
             </div>
           </div>
           <div className="receipt mx-auto w-full max-w-sm rounded-xl border px-6 py-8 font-mono text-sm shadow-[0_1px_3px_#0000001a]">
-            <p className="mono-label text-center">Lift Receipt · No. 000142</p>
+            <p className="mono-label text-center">Fortis · No. 000142</p>
             <p className="mt-2 text-center font-sans text-xl font-semibold">Push Day</p>
             <p className="mono-label text-center">Tue · 07:12 · 58 min</p>
             <div className="tear my-4" />

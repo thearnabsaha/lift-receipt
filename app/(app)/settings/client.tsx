@@ -81,7 +81,7 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
       <section><p className="mono-label mb-2">Data</p>
         <div className="rounded-xl border bg-card">
           <Row title="Export CSV" desc="All workouts, one row per set."><Button asChild variant="outline" size="sm"><a href="/api/export"><Download className="size-4" />Export</a></Button></Row>
-          <Row title="Import CSV" desc="Lift Receipt or Strong app export.">
+          <Row title="Import CSV" desc="Fortis or Strong app export.">
             <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={async (e) => {
               const f = e.target.files?.[0]; if (!f) return;
               try { const ws = parseCsv(await f.text()); if (!ws.length) throw new Error("No rows"); toast.loading(`Importing ${ws.length} workouts…`, { id: "imp" }); const r = await importWorkoutsAction(ws); toast.success(`Imported ${r.imported} workouts`, { id: "imp" }); router.refresh(); }

@@ -14,12 +14,12 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const SPLASH: [number, number, number][] = [[428, 926, 3], [430, 932, 3], [393, 852, 3], [390, 844, 3], [375, 812, 3], [414, 896, 2], [375, 667, 2]];
 
 export const metadata: Metadata = {
-  title: { default: "Lift Receipt · Workout tracker & gym log", template: "%s · Lift Receipt" },
+  title: { default: "Fortis · Workout tracker & gym log", template: "%s · Fortis" },
   description: "Log sets, reps and weights. Routines, rest timer, PRs, progress charts. Every workout printed like a receipt. Free forever.",
-  applicationName: "Lift Receipt",
+  applicationName: "Fortis",
   // "default" = opaque status bar that follows the light/dark system appearance on iOS, so it always matches the theme
   appleWebApp: {
-    capable: true, title: "Lift Receipt", statusBarStyle: "default",
+    capable: true, title: "Fortis", statusBarStyle: "default",
   },
   formatDetection: { telephone: false },
   icons: {
