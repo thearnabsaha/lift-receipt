@@ -3,8 +3,6 @@ import { DM_Sans, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa";
-import { BootSplash } from "@/components/boot-splash";
-import { BootSplashDismiss } from "@/components/boot-splash-dismiss";
 import "./globals.css";
 
 const dmSans = DM_Sans({ variable: "--font-dm-sans", subsets: ["latin"] });
@@ -52,12 +50,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           media={`screen and (device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${d}) and (orientation: portrait) and (prefers-color-scheme: dark)`} />)}
       </head>
       <body className="min-h-dvh flex flex-col">
-        <BootSplash />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <Toaster position="top-center" richColors={false} />
           <PwaRegister />
-          <BootSplashDismiss />
         </ThemeProvider>
       </body>
     </html>
