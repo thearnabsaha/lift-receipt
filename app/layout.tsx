@@ -3,6 +3,8 @@ import { DM_Sans, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { PwaRegister } from "@/components/pwa";
+import { BootSplash } from "@/components/boot-splash";
+import { BootSplashDismiss } from "@/components/boot-splash-dismiss";
 import "./globals.css";
 
 const dmSans = DM_Sans({ variable: "--font-dm-sans", subsets: ["latin"] });
@@ -18,10 +20,6 @@ export const metadata: Metadata = {
   // "default" = opaque status bar that follows the light/dark system appearance on iOS, so it always matches the theme
   appleWebApp: {
     capable: true, title: "Lift Receipt", statusBarStyle: "default",
-    startupImage: SPLASH.flatMap(([w, h, d]) => (["light", "dark"] as const).map((t) => ({
-      url: `/splash/${w}x${h}@${d}-${t}.png`,
-      media: `screen and (device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${d}) and (orientation: portrait) and (prefers-color-scheme: ${t})`,
-    }))),
   },
   formatDetection: { telephone: false },
   icons: {
@@ -44,13 +42,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${dmSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
-        <meta name="mobile-web-app-capable" content="yes" />
+        {/* Next 16 only emits mobile-web-app-capable; iOS needs the apple- prefixed tag for launch images */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        {/* iOS launch images: rendered directly in <head> (not streamed metadata). Plain portrait links first
+            (widest iOS support), then dark-mode variants. Must be exact pixel sizes. */}
+        {SPLASH.map(([w, h, d]) => <link key={`${w}${d}`} rel="apple-touch-startup-image" href={`/splash/${w}x${h}@${d}-light.png`}
+          media={`screen and (device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${d}) and (orientation: portrait)`} />)}
+        {SPLASH.map(([w, h, d]) => <link key={`${w}${d}d`} rel="apple-touch-startup-image" href={`/splash/${w}x${h}@${d}-dark.png`}
+          media={`screen and (device-width: ${w}px) and (device-height: ${h}px) and (-webkit-device-pixel-ratio: ${d}) and (orientation: portrait) and (prefers-color-scheme: dark)`} />)}
       </head>
       <body className="min-h-dvh flex flex-col">
+        <BootSplash />
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
           <Toaster position="top-center" richColors={false} />
           <PwaRegister />
+          <BootSplashDismiss />
         </ThemeProvider>
       </body>
     </html>
