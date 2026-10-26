@@ -13,9 +13,11 @@ test("delete queue dedupes and respects the undo window", () => {
   assert.deepEqual(hideDeleted([{ id: "a" }, { id: "c" }], q).map((x) => x.id), ["c"]);
 });
 test("deleting an earlier heavier workout turns a later one into a PR", () => {
-  const a = W("a", 1, 100, 5), b = W("b", 8, 90, 5);
-  assert.equal(prCount(prsAgainst([a, b], b)), 0);
-  assert.ok(prCount(prsAgainst([b], b)) > 0); // after deleting "a"
+  const z = W("z", 0, 80, 5), a = W("a", 1, 100, 5), b = W("b", 8, 90, 5);
+  assert.equal(prCount(prsAgainst([z, a, b], b)), 0);
+  assert.ok(prCount(prsAgainst([z, b], b)) > 0); // after deleting "a"
   // the workout itself and later ones never count as "prior"
-  assert.ok(prCount(prsAgainst([a, b, W("c", 9, 200, 5)], a)) > 0);
+  assert.ok(prCount(prsAgainst([z, a, b, W("c", 9, 200, 5)], a)) > 0);
+  // a first-ever session is a baseline, never a PR
+  assert.equal(prCount(prsAgainst([b], b)), 0);
 });

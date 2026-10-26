@@ -207,15 +207,18 @@ const handler = createMcpHandler(
     });
 
     server.registerTool("list_personal_records", {
-      title: "PR history", description: "Personal-record events, newest first: date, workout, exercise, kind (weight | e1rm | volume | reps), value and previous best. Weights in kg, volume in kg×reps. A first-ever session of an exercise is its baseline, not a PR.",
-      inputSchema: z.object({ exerciseId: z.string().optional().describe("Optional exercise id or name to filter"), limit: z.number().int().min(1).max(500).default(50) }),
+      title: "PR history", description: "Personal-record events, newest first: date, workout, exercise, kind (weight | e1rm | volume | reps), value and previous best. Weights in kg, volume in kg×reps. A first-ever session of an exercise is its baseline, not a PR: baselines are included as entries with isBaseline: true (kind/value = that session's best, previous = null) and are not counted as PRs. Set includeBaselines=false to omit them.",
+      inputSchema: z.object({ exerciseId: z.string().optional().describe("Optional exercise id or name to filter"), limit: z.number().int().min(1).max(500).default(50), includeBaselines: z.boolean().default(true) }),
     }, async (a, ctx) => {
       const u = uid(ctx);
       let exId: string | undefined;
       if (a.exerciseId) exId = (await svc.resolveExercise(u, { exerciseId: a.exerciseId, name: a.exerciseId }, false)).id;
-      const { events } = await svc.prHistory(u);
+      const { events, baselines } = await svc.prHistory(u);
       const r1 = (n: number) => Math.round(n * 10) / 10;
-      return ok(events.filter((e) => !exId || e.exerciseId === exId).slice(0, a.limit).map((e) => ({ ...e, value: r1(e.value), previous: r1(e.previous) })));
+      const prs = events.map((e) => ({ ...e, value: r1(e.value), previous: r1(e.previous) as number | null, isBaseline: false }));
+      const base = a.includeBaselines ? baselines.flatMap((b) => Object.entries(b.values).map(([kind, v]) => ({ workoutId: b.workoutId, workoutName: b.workoutName, date: b.date, exerciseId: b.exerciseId, exercise: b.exercise, kind, value: r1(v!.value), previous: null, set: v!.set, isBaseline: true }))) : [];
+      const rows = [...prs, ...base].filter((e) => !exId || e.exerciseId === exId).sort((x, y) => +y.date - +x.date || Number(x.isBaseline) - Number(y.isBaseline));
+      return ok({ prCount: prs.filter((e) => !exId || e.exerciseId === exId).length, entries: rows.slice(0, a.limit) });
     });
 
     server.registerTool("get_progress_summary", {

@@ -21,3 +21,24 @@ test("timeline: baseline not a PR, kinds, previous best, newest first", () => {
   const b = current.find((c) => c.exerciseId === "bench")!;
   assert.equal(b.maxWeight, 105); assert.deepEqual(b.bestVolumeSet, { weight: 100, reps: 8 }); assert.equal(b.prCount, 3);
 });
+import { prsAgainst } from "../lib/prs";
+test("baselines: first log per exercise flagged, not counted as PR", () => {
+  const { events, baselines, current } = prTimeline([
+    W("a1", "2026-10-26", [s(50, 10), s(60, 8)], "squat"),
+    W("b1", "2026-10-26", [s(null, 12)], "pullup"),
+    W("a2", "2026-10-28", [s(62.5, 8)], "squat"),
+  ]);
+  assert.equal(baselines.length, 2);
+  assert.ok(baselines.every((b) => b.isBaseline));
+  const sq = baselines.find((b) => b.exerciseId === "squat")!;
+  assert.equal(sq.workoutId, "a1"); assert.equal(sq.values.weight!.value, 60); assert.equal(sq.values.volume!.value, 500);
+  assert.equal(baselines.find((b) => b.exerciseId === "pullup")!.values.reps!.value, 12);
+  assert.ok(events.every((e) => e.workoutId === "a2"));
+  assert.equal(current.find((c) => c.exerciseId === "pullup")!.prCount, 0);
+});
+test("finish-screen PRs: first session of an exercise is a baseline", () => {
+  const w = W("x", "2026-10-26", [s(50, 10), s(60, 8)], "squat");
+  assert.deepEqual(prsAgainst([w], w), [{}]);
+  const w2 = W("y", "2026-10-27", [s(65, 5)], "squat");
+  assert.deepEqual(prsAgainst([w, w2], w2)[0][0], ["weight"]);
+});
