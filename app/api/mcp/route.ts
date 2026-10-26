@@ -206,6 +206,18 @@ const handler = createMcpHandler(
       return ok(await svc.personalRecords(u, exId));
     });
 
+    server.registerTool("list_personal_records", {
+      title: "PR history", description: "Personal-record events, newest first: date, workout, exercise, kind (weight | e1rm | volume | reps), value and previous best. Weights in kg, volume in kg×reps. A first-ever session of an exercise is its baseline, not a PR.",
+      inputSchema: z.object({ exerciseId: z.string().optional().describe("Optional exercise id or name to filter"), limit: z.number().int().min(1).max(500).default(50) }),
+    }, async (a, ctx) => {
+      const u = uid(ctx);
+      let exId: string | undefined;
+      if (a.exerciseId) exId = (await svc.resolveExercise(u, { exerciseId: a.exerciseId, name: a.exerciseId }, false)).id;
+      const { events } = await svc.prHistory(u);
+      const r1 = (n: number) => Math.round(n * 10) / 10;
+      return ok(events.filter((e) => !exId || e.exerciseId === exId).slice(0, a.limit).map((e) => ({ ...e, value: r1(e.value), previous: r1(e.previous) })));
+    });
+
     server.registerTool("get_progress_summary", {
       title: "Progress summary", description: "Weekly workouts, sets, volume (kg) and duration for the last N weeks.",
       inputSchema: z.object({ weeks: z.number().int().min(1).max(104).default(12) }),

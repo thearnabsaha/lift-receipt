@@ -5,7 +5,7 @@ import { createHash, randomBytes, randomUUID } from "crypto";
 import { z } from "zod";
 import { db, schema } from "./db";
 import type { WorkoutExercise } from "./db/schema";
-import { prsAgainst } from "./prs";
+import { prsAgainst, prTimeline } from "./prs";
 import { bestOf, e1rm, round, workoutSetCount, workoutVolume, countsForStats, setVolume } from "./calc";
 import { muscleBalance, PERIODS, type Period } from "./muscles";
 import { BUILTIN_EXERCISES, builtinId } from "./data/exercises";
@@ -238,6 +238,12 @@ export async function personalRecords(userId: string, exerciseId?: string) {
     recs.set(e.exerciseId, r);
   }
   return [...recs.values()].sort((a, b) => b.bestE1rm - a.bestE1rm);
+}
+
+/** Chronological PR feed (newest first) + current records, one pass over all workouts. */
+export async function prHistory(userId: string) {
+  const all = await db.select({ id: workout.id, name: workout.name, startedAt: workout.startedAt, exercises: workout.exercises }).from(workout).where(eq(workout.userId, userId)).orderBy(asc(workout.startedAt));
+  return prTimeline(all);
 }
 
 export async function progressSummary(userId: string, weeks = 12, tzIn?: string | null) {

@@ -34,7 +34,7 @@ export default async function Dashboard() {
           {recent.length ? <div className="space-y-3">{recent.map((w) => <WorkoutCard key={w.id} w={w} unit={unit} tz={tz} />)}</div> : <p className="text-sm text-muted-foreground">No workouts yet.</p>}
         </section>
         <section>
-          <h2 className="mb-3 text-xl font-semibold">Top lifts</h2>
+          <div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold">Top lifts</h2><Link href="/records" className="text-sm text-muted-foreground hover:text-foreground">Records →</Link></div>
           <div className="rounded-xl border bg-card">
             {prs.slice(0, 8).map((p) => (
               <Link key={p.exerciseId} href={`/exercises/${p.exerciseId}`} className="flex items-center gap-2 border-b px-4 py-2.5 last:border-0 hover:bg-muted/50">
