@@ -35,7 +35,7 @@ test("fitnotes: groups by date, converts lbs, names by category", () => {
   assert.equal(r.format, "fitnotes");
   assert.equal(r.workouts.length, 2);
   assert.equal(r.workouts[0].name, "Chest + Triceps");
-  assert.equal(r.workouts[0].exercises[0].sets[0].weight, 61.23);
+  assert.equal(r.workouts[0].exercises[0].sets[0].weight, 61.25);
   assert.equal(r.workouts[1].name, "Legs + Cardio");
   assert.equal(r.workouts[1].exercises.length, 1);
   assert.equal(r.skippedSets, 1);

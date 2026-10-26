@@ -1,6 +1,7 @@
 "use client";
 import { get, set } from "idb-keyval";
 import { deleteWorkoutAction, saveRoutineAction } from "@/app/actions";
+import { classifyStatus } from "@/lib/sync-status";
 import { mergeDelete, dueDeletes, UNDO_MS, type PendingDelete } from "@/lib/delete-queue";
 import type { WorkoutExercise } from "@/lib/db/schema";
 
@@ -19,16 +20,29 @@ async function flushRoutines() {
 }
 
 const KEY = "lr-sync-queue";
-export type Queued = { id: string; payload: unknown; queuedAt: number };
+export type Queued = { id: string; payload: unknown; queuedAt: number; unit?: "kg" | "lb"; rejected?: string | null };
 
-export async function queueWorkout(id: string, payload: unknown) {
+export { classifyStatus } from "@/lib/sync-status";
+
+export async function queueWorkout(id: string, payload: unknown, unit?: "kg" | "lb") {
   const q: Queued[] = (await get(KEY)) ?? [];
-  await set(KEY, [...q.filter((x) => x.id !== id), { id, payload, queuedAt: Date.now() }]);
+  await set(KEY, [...q.filter((x) => x.id !== id), { id, payload, queuedAt: Date.now(), unit }]);
   window.dispatchEvent(new Event("lr-queue"));
 }
 export async function queueSize() {
   return ((await get(KEY)) as Queued[] | undefined)?.length ?? 0;
 }
+/** POSTs a workout to the sync endpoint; status null = network failure. */
+export async function postWorkout(payload: unknown): Promise<{ status: number | null; error?: string }> {
+  try {
+    const r = await fetch("/api/workouts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload) });
+    if (r.ok) return { status: r.status };
+    let error = ""; try { error = String((await r.json()).error ?? ""); } catch {}
+    return { status: r.status, error };
+  } catch { return { status: null }; }
+}
+export async function rejectedWorkouts(): Promise<Queued[]> { return (((await get(KEY)) as Queued[] | undefined) ?? []).filter((x) => x.rejected); }
+export async function removeQueued(id: string) { const q: Queued[] = (await get(KEY)) ?? []; await set(KEY, q.filter((x) => x.id !== id)); window.dispatchEvent(new Event("lr-queue")); }
 let flushing = false;
 export async function flushQueue(): Promise<number> {
   if (flushing || !navigator.onLine) return 0;
@@ -39,8 +53,10 @@ export async function flushQueue(): Promise<number> {
     const left: Queued[] = [];
     for (const item of q) {
       try {
-        const r = await fetch("/api/workouts", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(item.payload) });
-        if (r.ok) sent++; else if (r.status >= 500 || r.status === 401) left.push(item);
+        const r = await postWorkout(item.payload);
+        const c = classifyStatus(r.status);
+        if (c === "sent") sent++;
+        else left.push(c === "rejected" ? { ...item, rejected: r.error || "Rejected by the server" } : item);
       } catch { left.push(item); }
     }
     await set(KEY, left);

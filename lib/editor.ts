@@ -1,6 +1,7 @@
 import { toDisplay, toKg } from "@/lib/calc";
 import type { SetType, WorkoutExercise } from "@/lib/db/schema";
 
+export const ACTIVE_KEY = "lr-active-workout";
 export const uid = () => Math.random().toString(36).slice(2, 10);
 export type ESet = { type: SetType; weight: string; reps: string; rpe: string; done: boolean; auto?: { weight?: boolean; reps?: boolean } };
 export type EEx = { key: string; exerciseId: string; name: string; notes: string; showNotes: boolean; supersetId: string | null; restSec: number | null; sets: ESet[] };
@@ -59,8 +60,8 @@ export function setFieldWithAutofill(sets: ESet[], si: number, field: FillField,
 /** New set copying the previous set (values linked as auto-filled). Falls back to the "previous" column. */
 export function nextSet(sets: ESet[], prevRow?: { weight: string; reps: string; type: SetType } | null): ESet {
   const last = sets.at(-1);
-  if (last) return { type: last.type, weight: last.weight, reps: last.reps, rpe: last.rpe, done: false, auto: { weight: last.weight !== "", reps: last.reps !== "" } };
-  if (prevRow) return { type: prevRow.type, weight: prevRow.weight, reps: prevRow.reps, rpe: "", done: false, auto: { weight: prevRow.weight !== "", reps: prevRow.reps !== "" } };
+  if (last) return { type: "normal", weight: last.weight, reps: last.reps, rpe: last.rpe, done: false, auto: { weight: last.weight !== "", reps: last.reps !== "" } };
+  if (prevRow) return { type: "normal", weight: prevRow.weight, reps: prevRow.reps, rpe: "", done: false, auto: { weight: prevRow.weight !== "", reps: prevRow.reps !== "" } };
   return { type: "normal", weight: "", reps: "", rpe: "", done: false };
 }
 
@@ -116,3 +117,15 @@ export function setLabel(sets: { type: SetType }[], si: number): string {
 
 /** datetime-local value → ISO, or null when cleared / invalid (iOS "Clear" sends ""). */
 export function fromLocalInput(v: string): string | null { if (!v) return null; const d = new Date(v); return Number.isNaN(+d) ? null : d.toISOString(); }
+
+/**
+ * Undo of a set delete. Restores the exact pre-delete sets (values + auto links) for the deleted set and the
+ * sets reflowed below it. Sets marked done after the delete keep their done state; sets added after the delete are kept.
+ */
+export function undoDelete(current: ESet[], snapshot: ESet[], si: number): ESet[] {
+  const out = structuredClone(snapshot);
+  for (let i = 0; i < si && i < current.length; i++) out[i] = structuredClone(current[i]);
+  for (let i = si + 1; i < out.length; i++) { const c = current[i - 1]; if (c?.done && !out[i].done) out[i] = { ...c }; }
+  for (let j = snapshot.length - 1; j < current.length; j++) out.push(structuredClone(current[j]));
+  return out;
+}

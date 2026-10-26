@@ -10,7 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { ExercisePicker, type ExerciseLite } from "@/components/exercise-picker";
 import { saveRoutineAction, saveWorkoutAction } from "@/app/actions";
-import { queueWorkout } from "@/lib/offline";
+import { classifyStatus, postWorkout, queueWorkout } from "@/lib/offline";
 import { formatDuration, toDisplay } from "@/lib/calc";
 import type { SetType } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
@@ -25,12 +25,13 @@ import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
 import { queueRoutineUpdate } from "@/lib/offline";
 import { Replace } from "lucide-react";
-import { uid, toEditorExercises, setFieldWithAutofill, nextSet, reflowAuto, toPayloadExercises, fillFromPrevious, dropLoneSupersets, setLabel, fromLocalInput, type ESet, type EditorState, type PrevMap } from "@/lib/editor";
+import { uid, toEditorExercises, setFieldWithAutofill, nextSet, reflowAuto, toPayloadExercises, fillFromPrevious, dropLoneSupersets, setLabel, fromLocalInput, undoDelete, type ESet, type EditorState, type PrevMap } from "@/lib/editor";
 export { toEditorExercises, type EditorState, type PrevMap };
 
 type Mode = "live" | "edit" | "routine";
 
-export const ACTIVE_KEY = "lr-active-workout";
+export { ACTIVE_KEY } from "@/lib/editor";
+import { ACTIVE_KEY } from "@/lib/editor";
 const blankSet = (): ESet => ({ type: "normal", weight: "", reps: "", rpe: "", done: false });
 const TYPE_ORDER: SetType[] = ["normal", "warmup", "drop", "failure"];
 
@@ -88,9 +89,10 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   });
 
   const deleteSet = (ei: number, si: number) => {
-    const key = st.exercises[ei]?.key; const removed = st.exercises[ei]?.sets[si]; if (!removed) return;
+    const key = st.exercises[ei]?.key; if (!st.exercises[ei]?.sets[si]) return;
+    const snapshot = structuredClone(st.exercises[ei].sets);
     upd((s) => { const e = s.exercises[ei]; e.sets.splice(si, 1); e.sets = reflowAuto(e.sets, si); });
-    toast("Set deleted", { duration: 5000, action: { label: "Undo", onClick: () => upd((s) => { const e = s.exercises.find((x) => x.key === key); if (e) e.sets.splice(Math.min(si, e.sets.length), 0, removed); }) } });
+    toast("Set deleted", { duration: 5000, action: { label: "Undo", onClick: () => upd((s) => { const e = s.exercises.find((x) => x.key === key); if (e) e.sets = undoDelete(e.sets, snapshot, si); }) } });
   };
   const replaceExercise = (list: ExerciseLite[], keep: boolean) => {
     const e = list[0]; const ei = replaceIdx; if (!e || ei == null) return;
@@ -159,8 +161,18 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       toast.success("Workout updated");
       router.push(`/history/${id}`); router.refresh();
     } catch {
+      // Online but the save failed: ask the sync endpoint directly to tell a hiccup from a real rejection.
+      if (navigator.onLine) {
+        const r = await postWorkout(payload);
+        const c = classifyStatus(r.status);
+        if (c === "rejected") { toast.error(`Not saved: ${r.error || "the server rejected this workout"}. Your workout is still open, nothing was lost.`, { duration: 10000 }); return; }
+        if (c === "sent") {
+          if (live) { localStorage.removeItem(ACTIVE_KEY); setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: null, prs: null }); return; }
+          toast.success("Workout updated"); router.push(`/history/${id}`); router.refresh(); return;
+        }
+      }
       if (live) {
-        await queueWorkout(id, payload);
+        await queueWorkout(id, payload, st.unit);
         localStorage.removeItem(ACTIVE_KEY);
         const c = Number(localStorage.getItem("lr-workout-count")) || 0;
         if (c) localStorage.setItem("lr-workout-count", String(c + 1));

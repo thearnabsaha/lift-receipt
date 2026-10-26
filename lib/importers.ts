@@ -1,6 +1,6 @@
 // Pure CSV importers: Fortis/Strong, Hevy, FitNotes. No DB access, so they're unit-tested.
 import Papa from "papaparse";
-import { KG_PER_LB } from "./calc";
+import { lbToKg } from "./calc";
 import type { SetType, WorkoutExercise, WorkoutSet } from "./db/schema";
 
 export type ImportFormat = "strong" | "fortis" | "hevy" | "fitnotes";
@@ -32,7 +32,7 @@ export function parseLocalDate(s: string | undefined, defaultHour = 12): Date | 
 
 const num = (v: string | undefined) => { if (v == null || v.trim() === "") return null; const n = Number(v.replace(",", ".")); return Number.isFinite(n) ? n : null; };
 const r2 = (n: number) => Math.round(n * 100) / 100;
-const kg = (v: number | null, lb: boolean) => (v == null ? null : r2(lb ? v * KG_PER_LB : v));
+const kg = (v: number | null, lb: boolean) => (v == null ? null : (lb ? lbToKg(v) : r2(v)));
 function setType(raw: string | undefined): SetType {
   const t = (raw ?? "").trim().toLowerCase();
   if (t === "w" || t.startsWith("warm")) return "warmup";

@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import { Download, Share, X, CloudOff } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { flushQueue, queueSize } from "@/lib/offline";
+import { flushQueue, queueSize, rejectedWorkouts, removeQueued } from "@/lib/offline";
+import { ACTIVE_KEY, toEditorExercises } from "@/lib/editor";
+import type { WorkoutExercise } from "@/lib/db/schema";
 
 type BIPEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 
@@ -38,7 +40,17 @@ export function PwaRegister() {
     const onFocus = () => setTimeout(reveal, 300);
     document.addEventListener("focusin", onFocus);
     window.visualViewport?.addEventListener("resize", reveal);
-    const flush = () => flushQueue().then((n) => { if (n) toast.success(`Synced ${n} offline workout${n > 1 ? "s" : ""}`); });
+    const flush = () => flushQueue().then(async (n) => {
+      if (n) toast.success(`Synced ${n} offline workout${n > 1 ? "s" : ""}`);
+      const bad = await rejectedWorkouts(); const first = bad[0]; if (!first) return;
+      toast.error(`${bad.length} offline workout${bad.length > 1 ? "s" : ""} couldn't be saved: ${first.rejected}. Kept on this device.`, { duration: Infinity, id: "sync-rejected", action: { label: "Open to fix", onClick: async () => {
+        if (localStorage.getItem(ACTIVE_KEY)) { toast("Finish or discard the current workout first"); return; }
+        const p = first.payload as { name: string; notes: string | null; routineId: string | null; startedAt: string; endedAt: string | null; exercises: WorkoutExercise[] };
+        const unit = first.unit ?? "kg";
+        localStorage.setItem(ACTIVE_KEY, JSON.stringify({ name: p.name, notes: p.notes ?? "", routineId: p.routineId, folder: "", startedAt: p.startedAt, endedAt: null, lastActivityAt: new Date().toISOString(), draftId: first.id, unit, exercises: toEditorExercises(p.exercises, unit, true) }));
+        await removeQueued(first.id); window.location.href = "/workout/active";
+      } } });
+    });
     flush();
     window.addEventListener("online", flush);
     return () => { window.removeEventListener("online", flush); document.removeEventListener("focusin", onFocus); window.visualViewport?.removeEventListener("resize", reveal); };

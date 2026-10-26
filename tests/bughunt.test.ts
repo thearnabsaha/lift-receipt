@@ -25,3 +25,35 @@ test("cleared datetime does not throw", () => {
   assert.equal(fromLocalInput(""), null);
   assert.ok(fromLocalInput("2026-10-27T10:00"));
 });
+
+import { undoDelete, reflowAuto, nextSet } from "../lib/editor";
+import { toKg, toDisplay, lbToKg } from "../lib/calc";
+import { classifyStatus } from "../lib/sync-status";
+test("undo delete restores exact pre-delete sets and auto flags", () => {
+  const before = linkPrefilled([b({ weight: "20", reps: "10" }), b({ weight: "20", reps: "10" }), b({ weight: "20", reps: "10" })]);
+  before[1].weight = "25"; before[1].auto = { weight: false, reps: true }; before[2].weight = "25"; before[2].auto = { weight: true, reps: true };
+  const after = reflowAuto([before[0], before[2]], 1);
+  assert.equal(after[1].weight, "20");
+  const r = undoDelete(after, before, 1);
+  assert.deepEqual(r, before);
+});
+test("undo keeps sets marked done / added after the delete", () => {
+  const before = [b({ weight: "20" }), b({ weight: "30" }), b({ weight: "40" })];
+  const after = [b({ weight: "20" }), b({ weight: "40", done: true }), b({ weight: "50" })];
+  const r = undoDelete(after, before, 1);
+  assert.deepEqual(r.map((s) => [s.weight, s.done]), [["20", false], ["30", false], ["40", true], ["50", false]]);
+});
+test("add set after warm-up/drop is a normal set", () => {
+  assert.equal(nextSet([b({ type: "warmup", weight: "10" })]).type, "normal");
+  assert.equal(nextSet([], { type: "drop", weight: "10", reps: "5" }).type, "normal");
+});
+test("kg -> lb -> kg round-trips", () => {
+  for (const kg of [22.5, 20, 2.5, 1.25, 102.5, 60, 37.5, 0.5, 142.5, 7.5]) assert.equal(toKg(toDisplay(kg, "lb"), "lb"), kg, String(kg));
+  for (let lb = 5; lb <= 500; lb += 2.5) assert.equal(toDisplay(lbToKg(lb), "lb"), lb, String(lb));
+  assert.equal(toKg(22.5, "kg"), 22.5);
+});
+test("sync status classification", () => {
+  assert.equal(classifyStatus(null), "retry"); assert.equal(classifyStatus(200), "sent");
+  assert.equal(classifyStatus(500), "retry"); assert.equal(classifyStatus(401), "retry");
+  assert.equal(classifyStatus(400), "rejected"); assert.equal(classifyStatus(422), "rejected");
+});

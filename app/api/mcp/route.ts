@@ -1,7 +1,7 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import * as svc from "@/lib/services";
-import { round } from "@/lib/calc";
+import { round, toKg } from "@/lib/calc";
 
 export const maxDuration = 60;
 const BASE = process.env.BETTER_AUTH_URL || "https://lift-receipt.vercel.app";
@@ -39,7 +39,7 @@ const unitIn = z.enum(["kg", "lb"]).optional().describe("Unit of weights in this
 async function unitFor(userId: string, u?: "kg" | "lb") {
   return (u ?? (await svc.getSettings(userId)).unit) as "kg" | "lb";
 }
-const conv = (v: number | null | undefined, unit: "kg" | "lb") => (v == null ? null : unit === "kg" ? v : round(v * 0.45359237, 3));
+const conv = (v: number | null | undefined, unit: "kg" | "lb") => toKg(v, unit);
 async function toExercises(userId: string, exs: z.infer<typeof exIn>[], unit: "kg" | "lb") {
   const out = [];
   for (const e of exs) {

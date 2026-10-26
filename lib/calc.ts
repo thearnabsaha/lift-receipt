@@ -4,7 +4,19 @@ export const KG_PER_LB = 0.45359237;
 export const toDisplay = (kg: number | null | undefined, unit: "kg" | "lb") =>
   kg == null ? null : unit === "kg" ? round(kg, 2) : round(kg / KG_PER_LB, 1);
 export const toKg = (v: number | null | undefined, unit: "kg" | "lb") =>
-  v == null || Number.isNaN(v) ? null : unit === "kg" ? v : round(v * KG_PER_LB, 3);
+  v == null || !Number.isFinite(v) ? null : unit === "kg" ? round(v, 3) : lbToKg(v);
+/**
+ * lb → kg that round-trips: picks the coarsest "plate-friendly" kg value (1, 0.5, 0.25, 0.1, 0.05, 0.01 steps)
+ * that still displays as the same lb value. So 22.5 kg → 49.6 lb → 22.5 kg (not 22.498).
+ */
+export function lbToKg(lb: number) {
+  const raw = lb * KG_PER_LB, shown = round(lb, 1);
+  for (const step of [1, 0.5, 0.25, 0.1, 0.05, 0.01]) {
+    const c = round(Math.round(raw / step) * step, 3);
+    if (round(c / KG_PER_LB, 1) === shown) return c;
+  }
+  return round(raw, 3);
+}
 export const round = (n: number, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
 
 /** Epley estimated one-rep max. */

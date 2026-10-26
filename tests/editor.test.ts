@@ -20,7 +20,7 @@ test("skips done sets, keeps template values, independent fields", () => {
 });
 test("nextSet copies previous", () => {
   const s = nextSet([b({ weight: "20", reps: "10", rpe: "8", type: "drop" })]);
-  assert.deepEqual([s.weight, s.reps, s.rpe, s.type, s.done, s.auto?.weight], ["20", "10", "8", "drop", false, true]);
+  assert.deepEqual([s.weight, s.reps, s.rpe, s.type, s.done, s.auto?.weight], ["20", "10", "8", "normal", false, true]);
   assert.equal(nextSet([]).weight, "");
 });
 
