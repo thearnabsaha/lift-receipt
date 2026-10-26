@@ -47,6 +47,7 @@ export default async function SharedRoutinePage({ params }: { params: Promise<{ 
           <p className="mono-label mt-3 text-center text-[10px]">Importing adds a copy, converted to your units. Nothing of yours is overwritten.</p>
         </article>
       )}
+      <p className="mono-label mt-6 text-center text-[10px] text-muted-foreground">Fortis · Made by Arnab Saha · <a className="underline" href="https://x.com/TheArnabSaha" target="_blank" rel="noopener noreferrer">X</a> · <a className="underline" href="https://github.com/thearnabsaha" target="_blank" rel="noopener noreferrer">GitHub</a></p>
     </main>
   );
 }

@@ -132,6 +132,11 @@ export function SettingsClient({ settings, keys, mcpUrl, email, routines }: { ro
 
       <section><p className="mono-label mb-2">About</p>
         <div className="space-y-1 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Made by Arnab Saha</p>
+          <div className="-mx-2 flex gap-1">
+            <a className="inline-flex min-h-11 items-center px-2 underline underline-offset-4" href="https://x.com/TheArnabSaha" target="_blank" rel="noopener noreferrer">X · @TheArnabSaha</a>
+            <a className="inline-flex min-h-11 items-center px-2 underline underline-offset-4" href="https://github.com/thearnabsaha" target="_blank" rel="noopener noreferrer">GitHub · thearnabsaha</a>
+          </div>
           <p>Fortis · <a className="underline" href="https://github.com/thearnabsaha/lift-receipt" target="_blank" rel="noreferrer">Source code</a></p>
           <p>Muscle diagram from <a className="underline" href="https://github.com/melihcolpan/MuscleMap" target="_blank" rel="noreferrer">MuscleMap</a> (MIT), via <a className="underline" href="https://github.com/DuarteSantos8/openGym" target="_blank" rel="noreferrer">openGym</a> (<a className="underline" href="https://github.com/DuarteSantos8/openGym/blob/main/LICENSE" target="_blank" rel="noreferrer">AGPL-3.0</a>). <a className="underline" href="https://github.com/thearnabsaha/lift-receipt/blob/main/NOTICE.md" target="_blank" rel="noreferrer">Notices</a></p>
         </div>
