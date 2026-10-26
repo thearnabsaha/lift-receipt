@@ -18,7 +18,7 @@ function Thumb({ v, online }: { v: FormVideo; online: boolean }) {
   const [failed, setFailed] = useState(false);
   if (!online || failed) return <span className="absolute inset-0 grid place-items-center p-2 text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Video</span>;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" loading="lazy" decoding="async" draggable={false} className="absolute inset-0 size-full object-cover select-none"
+  return <img src={src} alt="" loading="lazy" decoding="async" draggable={false} className={`absolute inset-0 size-full object-cover select-none ${v.vertical ? "" : "scale-[1.34]"}`}
     onLoad={(e) => { if (src.includes("oardefault") && e.currentTarget.naturalWidth <= 120) setSrc(`https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`); }}
     onError={() => (src.includes("oardefault") ? setSrc(`https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`) : setFailed(true))} />;
 }
