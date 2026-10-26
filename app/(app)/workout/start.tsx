@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Copy, Link2Off, MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,10 @@ import { ACTIVE_KEY, toEditorExercises, type EditorState } from "@/components/wo
 import { useSettings } from "@/components/settings-context";
 import { deleteRoutineAction, shareRoutineAction, unshareRoutineAction } from "@/app/actions";
 import type { WorkoutExercise } from "@/lib/db/schema";
+
+// Device-local weekday; empty on the server so a UTC server never mismatches the client near midnight.
+const noop = () => () => {};
+const useWeekday = () => useSyncExternalStore(noop, () => new Date().toLocaleDateString(undefined, { weekday: "long" }), () => "");
 
 function greeting() {
   const h = new Date().getHours();
@@ -32,6 +36,7 @@ type R = { id: string; name: string; folder?: string | null; notes: string | nul
 /** Deep links (Home Screen web clips, iOS Shortcuts, manifest shortcuts): /workout?start=1, /workout?routine=<id>, /workout?routine=last */
 export function StartWorkout({ routines = [], lastRoutineId = null }: { routines?: R[]; lastRoutineId?: string | null }) {
   const start = useStart();
+  const weekday = useWeekday();
   const router = useRouter();
   useEffect(() => {
     const q = new URLSearchParams(location.search);
@@ -47,7 +52,7 @@ export function StartWorkout({ routines = [], lastRoutineId = null }: { routines
   }, []);
   return (
     <div className="receipt rounded-xl border px-5 py-7 shadow-[0_1px_3px_#0000001a]">
-      <p className="mono-label">Quick start · {new Date().toLocaleDateString(undefined, { weekday: "long" })}</p>
+      <p className="mono-label">Quick start{weekday && ` · ${weekday}`}</p>
       <p className="mt-1 text-sm text-muted-foreground">Add exercises as you go. The timer starts now.</p>
       <Button className="mt-4 h-11 w-full active:translate-y-px" onClick={() => start()}><Play className="size-4" />Start an empty workout</Button>
     </div>
