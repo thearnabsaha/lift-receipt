@@ -6,7 +6,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** Start/end frames crossfading as a pseudo-animation. Tap to pause. Static (both labelled) with reduced motion. */
-export function DemoFrames({ demo, name }: { demo: Demo; name: string }) {
+export function DemoFrames({ demo, name, caption = true }: { demo: Demo; name: string; caption?: boolean }) {
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   useEffect(() => {
@@ -31,26 +31,31 @@ export function DemoFrames({ demo, name }: { demo: Demo; name: string }) {
           {demo.frames.map((f, k) => <span key={f} className={`size-1.5 rounded-full ${k === i ? "bg-foreground" : "bg-foreground/25"}`} />)}
         </span>
       </button>
-      <figcaption className="mt-1.5 text-right font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
-        Drawing: <a href={DEMO_CREDIT.url} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">{DEMO_CREDIT.name}</a> · <a href={DEMO_CREDIT.licenseUrl} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">{DEMO_CREDIT.license}</a>
-      </figcaption>
+      {caption && <Credit />}
     </figure>
   );
 }
 
-/** Muscles + numbered steps, receipt style. */
-export function DemoDetails({ demo }: { demo: Demo }) {
-  const steps = cleanSteps(demo.steps);
+function Credit({ className = "" }: { className?: string }) {
   return (
-    <div className="space-y-4">
-      {(demo.primary.length > 0 || demo.secondary.length > 0) && (
+      <p className={`mt-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground ${className}`}>
+        Drawing: <a href={DEMO_CREDIT.url} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">{DEMO_CREDIT.name}</a> · <a href={DEMO_CREDIT.licenseUrl} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">{DEMO_CREDIT.license}</a>
+      </p>
+  );
+}
+
+/** Muscles + numbered steps, receipt style. */
+function Muscles({ demo }: { demo: Demo }) {
+  return (demo.primary.length > 0 || demo.secondary.length > 0) ? (
         <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
           {demo.primary.length > 0 && <><span className="mono-label pt-0.5 text-[10px]">Primary</span><span>{demo.primary.join(", ")}</span></>}
           {demo.secondary.length > 0 && <><span className="mono-label pt-0.5 text-[10px]">Secondary</span><span className="text-muted-foreground">{demo.secondary.join(", ")}</span></>}
         </div>
-      )}
-      {steps.length > 0 && (<>
-        <div className="tear" />
+  ) : null;
+}
+
+function Steps({ steps }: { steps: string[] }) {
+  return (
         <ol className="space-y-2.5 text-sm">
           {steps.map((s, k) => (
             <li key={k} className="grid grid-cols-[1.75rem_1fr] gap-1">
@@ -58,13 +63,44 @@ export function DemoDetails({ demo }: { demo: Demo }) {
             </li>
           ))}
         </ol>
+  );
+}
+
+export function DemoDetails({ demo }: { demo: Demo }) {
+  const steps = cleanSteps(demo.steps);
+  return (
+    <div className="space-y-4">
+      <Muscles demo={demo} />
+      {steps.length > 0 && (<>
+        <div className="tear" />
+        <Steps steps={steps} />
       </>)}
     </div>
   );
 }
 
+/** Compact inline version for the exercise page: small drawing beside the muscles, steps behind a disclosure. */
 export function DemoBlock({ demo, name }: { demo: Demo; name: string }) {
-  return <div className="grid gap-5 sm:grid-cols-[minmax(0,280px)_1fr]"><DemoFrames demo={demo} name={name} /><DemoDetails demo={demo} /></div>;
+  const steps = cleanSteps(demo.steps);
+  return (
+    <div>
+      <div className="grid grid-cols-[9rem_1fr] items-start gap-4 sm:grid-cols-[13rem_1fr]">
+        <DemoFrames demo={demo} name={name} caption={false} />
+        <div className="space-y-3 pt-1 [&_.grid]:grid-cols-1 [&_.grid]:gap-y-0.5">
+          <Muscles demo={demo} />
+        </div>
+      </div>
+      {steps.length > 0 && (
+        <details className="group mt-3 rounded-xl border">
+          <summary className="flex h-11 cursor-pointer list-none items-center justify-between px-3 text-sm [&::-webkit-details-marker]:hidden">
+            <span>{steps.length} steps</span><span className="font-mono text-muted-foreground transition-transform group-open:rotate-90">›</span>
+          </summary>
+          <div className="border-t border-dashed px-3 py-3"><Steps steps={steps} /></div>
+        </details>
+      )}
+      <Credit className="text-left" />
+    </div>
+  );
 }
 
 /** Bottom sheet for the workout screen: tap an exercise name to see how to do it. Loads the demo index lazily. */
