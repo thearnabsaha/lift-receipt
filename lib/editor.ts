@@ -11,8 +11,21 @@ export type PrevMap = Record<string, { weight: number | null; reps: number | nul
 export function toEditorExercises(exs: WorkoutExercise[], unit: "kg" | "lb", keepDone: boolean): EEx[] {
   return exs.map((e) => ({
     key: uid(), exerciseId: e.exerciseId, name: e.name, notes: e.notes ?? "", showNotes: !!e.notes, supersetId: e.supersetId ?? null, restSec: e.restSec ?? null,
-    sets: e.sets.map((s) => ({ type: s.type, weight: s.weight == null ? "" : String(toDisplay(s.weight, unit)), reps: s.reps == null ? "" : String(s.reps), rpe: s.rpe == null ? "" : String(s.rpe), done: keepDone ? s.done : false })),
+    sets: linkPrefilled(e.sets.map((s) => ({ type: s.type, weight: s.weight == null ? "" : String(toDisplay(s.weight, unit)), reps: s.reps == null ? "" : String(s.reps), rpe: s.rpe == null ? "" : String(s.rpe), done: keepDone ? s.done : false })), !keepDone),
   }));
+}
+
+/**
+ * Pre-filled sets (from a routine / last workout) whose value repeats the set above count as
+ * auto-filled, so editing the first one carries down. Differing values (e.g. a pyramid) stay put.
+ */
+export function linkPrefilled(sets: ESet[], enable = true): ESet[] {
+  if (!enable) return sets;
+  return sets.map((s, i) => {
+    const p = sets[i - 1];
+    const link = (f: FillField) => !!p && s[f] !== "" && s[f] === p[f];
+    return { ...s, auto: { weight: link("weight"), reps: link("reps") } };
+  });
 }
 
 

@@ -35,3 +35,33 @@ test("reflowAuto re-links auto values after delete", () => {
   const r = reflowAuto(sets, 1);
   assert.equal(r[1].weight, "20"); assert.equal(r[2].weight, "50");
 });
+
+import { linkPrefilled, toEditorExercises } from "../lib/editor";
+test("routine-prefilled equal sets follow set 1 (weight & reps)", () => {
+  const sets = linkPrefilled([b({ weight: "50", reps: "10" }), b({ weight: "50", reps: "10" }), b({ weight: "50", reps: "10" })]);
+  let r = f(sets, 0, "weight", "60"); r = f(r, 0, "reps", "8");
+  assert.deepEqual(r.map((s) => s.weight + "x" + s.reps), ["60x8", "60x8", "60x8"]);
+});
+test("pyramid template values are not clobbered", () => {
+  const r = f(linkPrefilled([b({ weight: "20" }), b({ weight: "25" }), b({ weight: "25" })]), 0, "weight", "22");
+  assert.deepEqual(r.map((s) => s.weight), ["22", "25", "25"]);
+});
+test("done middle set skipped, later prefilled set still follows", () => {
+  let r = linkPrefilled([b({ weight: "50" }), b({ weight: "50" }), b({ weight: "50" })]);
+  r[1].done = true; r = f(r, 0, "weight", "55");
+  assert.deepEqual(r.map((s) => s.weight), ["55", "50", "55"]);
+});
+test("auto flags survive JSON draft round-trip", () => {
+  const r = JSON.parse(JSON.stringify(f(linkPrefilled([b({ weight: "50" }), b({ weight: "50" })]), 0, "weight", "40")));
+  assert.deepEqual(f(r, 0, "weight", "45").map((s: ESet) => s.weight), ["45", "45"]);
+});
+test("toEditorExercises links for routine start, not for history edit", () => {
+  const ex = [{ exerciseId: "x", name: "X", sets: [{ type: "normal", weight: 50, reps: 10, rpe: null, done: true }, { type: "normal", weight: 50, reps: 10, rpe: null, done: true }] }] as never;
+  assert.equal(toEditorExercises(ex, "kg", false)[0].sets[1].auto?.weight, true);
+  assert.equal(toEditorExercises(ex, "kg", true)[0].sets[1].auto?.weight, undefined);
+});
+test("typed value in later set stays manual", () => {
+  let r = f(linkPrefilled([b({ weight: "50" }), b({ weight: "50" }), b({ weight: "50" })]), 2, "weight", "70");
+  r = f(r, 0, "weight", "60");
+  assert.deepEqual(r.map((s) => s.weight), ["60", "60", "70"]);
+});
