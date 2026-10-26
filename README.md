@@ -42,3 +42,8 @@ Smoke test: `MCP_URL=https://<domain>/api/mcp MCP_KEY=lr_... node scripts/mcp-sm
 
 ## Deploy (Vercel)
 Set `DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` (production origin) and deploy.
+
+## Credits & licences
+
+- Muscle diagram geometry: [MuscleMap](https://github.com/melihcolpan/MuscleMap) (MIT) via [openGym](https://github.com/DuarteSantos8/openGym) (openGym itself is AGPL-3.0; the reused path data is MIT-licensed artwork per openGym's NOTICE). See [NOTICE.md](NOTICE.md). No openGym/Gym visual exercise media is used.
+- Source code: https://github.com/thearnabsaha/lift-receipt

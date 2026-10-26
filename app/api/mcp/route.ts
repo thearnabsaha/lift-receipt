@@ -221,6 +221,11 @@ const handler = createMcpHandler(
       title: "Stats", description: "Overall training stats: total workouts, volume (kg), sets, hours, weekly streak, this week's workouts, top exercises, and the user's unit setting.",
       inputSchema: z.object({}),
     }, async (_a, ctx) => { const u = uid(ctx); return ok({ ...(await svc.getStats(u)), unit: (await svc.getSettings(u)).unit }); });
+
+    server.registerTool("get_muscle_balance", {
+      title: "Muscle balance", description: "Per-muscle training load over a period (7d/30d/90d/all): working sets (primary muscle = 1, secondary = 0.5, warm-ups excluded), volume in kg, last trained date and top exercises, sorted most to least trained. Same data as the History → Muscles map.",
+      inputSchema: z.object({ period: z.enum(["7d", "30d", "90d", "all"]).default("30d") }),
+    }, async (a, ctx) => ok(await svc.getMuscleBalance(uid(ctx), a.period)));
   },
   { serverInfo: { name: "fortis", version: "1.0.0" } },
 );

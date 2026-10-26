@@ -7,6 +7,8 @@ import { db, schema } from "./db";
 import type { WorkoutExercise } from "./db/schema";
 import { prsAgainst } from "./prs";
 import { bestOf, e1rm, round, workoutSetCount, workoutVolume, countsForStats, setVolume } from "./calc";
+import { muscleBalance, PERIODS, type Period } from "./muscles";
+import { BUILTIN_EXERCISES, builtinId } from "./data/exercises";
 
 const { exercise, routine, workout, measurement, settings, apiKey } = schema;
 const id = () => randomUUID();
@@ -315,4 +317,23 @@ export async function lastPerformance(userId: string) {
 
 export async function exerciseLite(userId: string) {
   return (await listExercises(userId)).map((e) => ({ id: e.id, name: e.name, muscle: e.muscle, equipment: e.equipment, userId: e.userId }));
+}
+
+// ---------- muscle balance ----------
+/** exerciseId → muscle field, for built-ins (no query) plus the user's custom exercises. */
+export const muscleLookup = cache(async (userId: string) => {
+  const map = new Map<string, string>(BUILTIN_EXERCISES.map(([n, mu]) => [builtinId(n), mu]));
+  const rows = await db.select({ id: exercise.id, muscle: exercise.muscle }).from(exercise).where(eq(exercise.userId, userId));
+  for (const r of rows) map.set(r.id, r.muscle);
+  return map;
+});
+export async function getMuscleBalance(userId: string, period: Period = "30d") {
+  const days = PERIODS[period];
+  const conds = [eq(workout.userId, userId)];
+  if (days) conds.push(gte(workout.startedAt, new Date(Date.now() - days * 864e5)));
+  const [rows, lookup] = await Promise.all([
+    db.select({ startedAt: workout.startedAt, exercises: workout.exercises }).from(workout).where(and(...conds)),
+    muscleLookup(userId),
+  ]);
+  return { period, workouts: rows.length, muscles: muscleBalance(rows, (id) => lookup.get(id)) };
 }
