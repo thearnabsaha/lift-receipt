@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cleanSteps, DEMO_CREDIT, loadDemoIndex, plainMuscles, type Demo } from "@/lib/demos";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { FormVideos } from "@/components/form-videos";
 
 /** Start/end frames crossfading as a pseudo-animation. Tap to pause. Static (both labelled) with reduced motion. */
 export function DemoFrames({ demo, name, caption = true }: { demo: Demo; name: string; caption?: boolean }) {
@@ -133,6 +134,7 @@ export function ExerciseDemoSheet({ open, onOpenChange, exerciseId, name, instru
             </div>
           )}
           {demo && instructions && <p className="rounded-xl border p-3 text-sm"><span className="mono-label mb-1 block text-[10px]">Your note</span>{instructions}</p>}
+          {open && <FormVideos exerciseId={exerciseId} name={name} custom={!exerciseId.startsWith("bi_")} />}
           <Link href={`/exercises/${exerciseId}`} className="flex h-11 items-center justify-center rounded-lg border border-dashed text-sm hover:bg-muted/60">History &amp; charts →</Link>
         </div>
       </SheetContent>

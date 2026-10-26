@@ -8,6 +8,7 @@ import { ExerciseCharts } from "./charts";
 import { DeleteExercise } from "./delete";
 import { FavoriteToggle } from "@/components/favorite-star";
 import { DemoBlock } from "@/components/exercise-demo";
+import { FormVideos } from "@/components/form-videos";
 import demos from "@/lib/data/demos.json";
 import type { DemoIndex } from "@/lib/demos";
 
@@ -36,6 +37,7 @@ export default async function ExercisePage({ params }: PageProps<"/exercises/[id
           <DemoBlock demo={(demos as DemoIndex)[ex.id]} name={ex.name} />
         </section>
       )}
+      <div className="mb-8 empty:hidden"><FormVideos exerciseId={ex.id} name={ex.name} custom={!!ex.userId} /></div>
       {ex.instructions && <p className="mb-6 text-sm text-muted-foreground">{ex.instructions}</p>}
       <StatStrip items={[
         { label: "Max weight", value: rec ? d(rec.maxWeight) : "—", suffix: unit },
