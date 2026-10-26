@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { cleanSteps, DEMO_CREDIT, loadDemoIndex, type Demo } from "@/lib/demos";
+import { cleanSteps, DEMO_CREDIT, loadDemoIndex, plainMuscles, type Demo } from "@/lib/demos";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -46,10 +46,12 @@ function Credit({ className = "text-right" }: { className?: string }) {
 
 /** Muscles + numbered steps, receipt style. */
 function Muscles({ demo }: { demo: Demo }) {
-  return (demo.primary.length > 0 || demo.secondary.length > 0) ? (
+  const pri = plainMuscles(demo.primary);
+  const sec = plainMuscles(demo.secondary).filter((m) => !pri.includes(m));
+  return (pri.length > 0 || sec.length > 0) ? (
         <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-          {demo.primary.length > 0 && <><span className="mono-label pt-0.5 text-[10px]">Primary</span><span>{demo.primary.join(", ")}</span></>}
-          {demo.secondary.length > 0 && <><span className="mono-label pt-0.5 text-[10px]">Secondary</span><span className="text-muted-foreground">{demo.secondary.join(", ")}</span></>}
+          {pri.length > 0 && <><span className="mono-label pt-0.5 text-[10px]">Primary</span><span>{pri.join(", ")}</span></>}
+          {sec.length > 0 && <><span className="mono-label pt-0.5 text-[10px]">Secondary</span><span className="text-muted-foreground">{sec.join(", ")}</span></>}
         </div>
   ) : null;
 }
