@@ -222,6 +222,11 @@ const handler = createMcpHandler(
       return ok({ prCount: prs.filter((e) => !exId || e.exerciseId === exId).length, entries: rows.slice(0, a.limit) });
     });
 
+    server.registerTool("get_training_calendar", {
+      title: "Training calendar", description: "Days trained in the user's time zone (Monday-first weeks) with workout count, volume (kg×reps) and intensity level 1-3 (volume terciles of the user's own training days), plus thisWeek (workouts this week), currentStreak and longestStreak (consecutive weeks with ≥1 workout; the current streak stays alive until the current week ends without training) and activeWeeks. Optionally limit days to a month range.",
+      inputSchema: z.object({ from: z.string().regex(/^\d{4}-\d{2}$/).optional().describe("First month YYYY-MM"), to: z.string().regex(/^\d{4}-\d{2}$/).optional().describe("Last month YYYY-MM") }),
+    }, async (a, ctx) => ok(await svc.trainingCalendar(uid(ctx), a)));
+
     server.registerTool("get_progress_summary", {
       title: "Progress summary", description: "Weekly workouts, sets, volume (kg) and duration for the last N weeks.",
       inputSchema: z.object({ weeks: z.number().int().min(1).max(104).default(12) }),

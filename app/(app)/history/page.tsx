@@ -2,6 +2,10 @@ import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { getSettings, listWorkouts, muscleLookup, userTz } from "@/lib/services";
+import { buildCalendar } from "@/lib/calendar";
+import { workoutVolume } from "@/lib/calc";
+import { localDateKey } from "@/lib/tz";
+import type { ReactNode } from "react";
 import { MuscleMap, type MuscleData } from "@/components/muscle-map";
 import { muscleBalance, PERIODS, type Period } from "@/lib/muscles";
 import { PageHeader, EmptyState } from "@/components/app-shell";
@@ -34,9 +38,12 @@ export default async function HistoryPage({ searchParams }: PageProps<"/history"
         </div>} />
       {!list.length && <EmptyState line="Nothing logged yet. Your receipts will print here."><Button asChild size="sm"><Link href="/workout">Start a workout</Link></Button></EmptyState>}
       {list.length > 0 && <MuscleMap data={muscles} unit={s.unit as "kg" | "lb"} />}
-      {view === "calendar" ? (
-        <HistoryCalendar workouts={list.map((w) => ({ id: w.id, name: w.name, date: w.startedAt.toISOString() }))} />
-      ) : <HistoryList rows={[...byMonth.entries()].flatMap(([m, ws]) => ws.map((w) => ({ id: w.id, name: w.name, date: w.startedAt.toISOString(), month: m, card: <WorkoutCard w={w} unit={s.unit as "kg" | "lb"} tz={tz} /> })))} />}
+      {view === "calendar" ? (() => {
+        const cal = buildCalendar(list.map((w) => ({ startedAt: w.startedAt, volume: workoutVolume(w.exercises) })), tz);
+        const cards: Record<string, ReactNode[]> = {};
+        for (const w of [...list].reverse()) (cards[localDateKey(w.startedAt, tz)] ??= []).push(<WorkoutCard key={w.id} w={w} unit={s.unit as "kg" | "lb"} tz={tz} />);
+        return <HistoryCalendar cal={cal} cards={cards} initialDay={typeof sp.day === "string" ? sp.day : undefined} />;
+      })() : <HistoryList rows={[...byMonth.entries()].flatMap(([m, ws]) => ws.map((w) => ({ id: w.id, name: w.name, date: w.startedAt.toISOString(), month: m, card: <WorkoutCard w={w} unit={s.unit as "kg" | "lb"} tz={tz} /> })))} />}
     </div>
   );
 }

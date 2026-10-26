@@ -12,6 +12,7 @@ import { BUILTIN_EXERCISES, builtinId } from "./data/exercises";
 import { mondayOf, summarizeWeek, offsetToTz } from "./weekly";
 import { addWeeks, defaultTz, isValidTz, localDateKey, mondayOfTz } from "./tz";
 import { suggestNext, type Session } from "./coach";
+import { buildCalendar } from "./calendar";
 
 const { exercise, routine, workout, measurement, settings, apiKey, favoriteExercise, routineShare } = schema;
 const id = () => randomUUID();
@@ -499,4 +500,15 @@ export async function getMuscleBalance(userId: string, period: Period = "30d") {
     muscleLookup(userId),
   ]);
   return { period, workouts: rows.length, muscles: muscleBalance(rows, (id) => lookup.get(id)) };
+}
+
+/** Training calendar + weekly streaks in the user's tz. One query (all workouts, only start time + exercises). Optional month window (YYYY-MM) trims `days`; streaks always use full history. */
+export async function trainingCalendar(userId: string, f: { from?: string; to?: string } = {}) {
+  const [rows, tz] = await Promise.all([
+    db.select({ startedAt: workout.startedAt, exercises: workout.exercises }).from(workout).where(eq(workout.userId, userId)),
+    userTz(userId),
+  ]);
+  const cal = buildCalendar(rows.map((r) => ({ startedAt: r.startedAt, volume: workoutVolume(r.exercises) })), tz);
+  const days = Object.fromEntries(Object.entries(cal.days).filter(([k]) => (!f.from || k.slice(0, 7) >= f.from) && (!f.to || k.slice(0, 7) <= f.to)).sort(([a], [b]) => a.localeCompare(b)));
+  return { tz, weekStartsOn: "Monday", ...cal, days };
 }
