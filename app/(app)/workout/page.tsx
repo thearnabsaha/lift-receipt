@@ -2,7 +2,7 @@ import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { listRoutines } from "@/lib/services";
+import { listRoutines, sharedRoutineIds } from "@/lib/services";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/pwa";
@@ -12,7 +12,7 @@ export const metadata = { title: "Workout" };
 
 export default async function WorkoutPage() {
   const u = await requireUser();
-  const routines = await listRoutines(u.id);
+  const [routines, shared] = await Promise.all([listRoutines(u.id), sharedRoutineIds(u.id)]);
   const folders = new Map<string, typeof routines>();
   for (const r of routines) { const k = r.folder || "My routines"; folders.set(k, [...(folders.get(k) ?? []), r]); }
   return (
@@ -34,7 +34,7 @@ export default async function WorkoutPage() {
               <div key={r.id} className="rounded-xl border bg-card p-4 shadow-[0_1px_3px_#0000001a] transition hover:-translate-y-0.5">
                 <div className="flex items-start gap-2">
                   <Link href={`/routines/${r.id}`} className="min-w-0 flex-1"><p className="truncate font-semibold">{r.name}</p></Link>
-                  <RoutineMenu id={r.id} />
+                  <RoutineMenu id={r.id} name={r.name} shared={shared.includes(r.id)} />
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.exercises.map((e) => `${e.sets.length} × ${e.name}`).join(", ") || "No exercises"}</p>
                 <StartRoutineButton routine={{ id: r.id, name: r.name, folder: r.folder, notes: r.notes, exercises: r.exercises }} />

@@ -1,14 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Copy, Link2Off, MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ACTIVE_KEY, toEditorExercises, type EditorState } from "@/components/workout-editor";
 import { useSettings } from "@/components/settings-context";
-import { deleteRoutineAction } from "@/app/actions";
+import { deleteRoutineAction, shareRoutineAction, unshareRoutineAction } from "@/app/actions";
 import type { WorkoutExercise } from "@/lib/db/schema";
 
 function greeting() {
@@ -51,15 +53,46 @@ export function StartRoutineButton({ routine }: { routine: { id: string; name: s
   return <Button size="sm" variant="secondary" className="mt-3 w-full" onClick={() => start(routine)}><Play className="size-4" />Start routine</Button>;
 }
 
-export function RoutineMenu({ id }: { id: string }) {
+export function RoutineMenu({ id, name, shared = false }: { id: string; name?: string; shared?: boolean }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false); const [url, setUrl] = useState<string | null>(null); const [busy, setBusy] = useState(false);
+  const openShare = async () => {
+    setOpen(true); setUrl(null);
+    try { const { token } = await shareRoutineAction(id); setUrl(`${location.origin}/share/r/${token}`); }
+    catch { toast.error("Could not create share link"); setOpen(false); }
+  };
+  const copy = async () => { if (!url) return; try { await navigator.clipboard.writeText(url); toast.success("Link copied"); } catch { toast.error("Copy failed"); } };
+  const nativeShare = async () => {
+    if (!url) return;
+    if (navigator.share) { try { await navigator.share({ title: name ? `${name} · Fortis routine` : "Fortis routine", url }); } catch { /* cancelled */ } }
+    else copy();
+  };
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-7" aria-label="Routine options"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild><Link href={`/routines/${id}`}><Pencil className="size-4" />Edit</Link></DropdownMenuItem>
-        <DropdownMenuItem variant="destructive" onClick={async () => { if (!confirm("Delete routine?")) return; await deleteRoutineAction(id); toast.success("Routine deleted"); router.refresh(); }}><Trash2 className="size-4" />Delete</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="size-7" aria-label="Routine options"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild><Link href={`/routines/${id}`}><Pencil className="size-4" />Edit</Link></DropdownMenuItem>
+          <DropdownMenuItem onClick={openShare}><Share2 className="size-4" />{shared ? "Share link" : "Share"}</DropdownMenuItem>
+          {shared && <DropdownMenuItem onClick={async () => { await unshareRoutineAction(id); toast.success("Sharing stopped"); router.refresh(); }}><Link2Off className="size-4" />Stop sharing</DropdownMenuItem>}
+          <DropdownMenuItem variant="destructive" onClick={async () => { if (!confirm("Delete routine?")) return; await deleteRoutineAction(id); toast.success("Routine deleted"); router.refresh(); }}><Trash2 className="size-4" />Delete</DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) router.refresh(); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <p className="mono-label">Share routine</p>
+            <DialogTitle>{name ?? "Routine"}</DialogTitle>
+            <DialogDescription>Anyone with the link can view this template and import a copy. Your workout history stays private.</DialogDescription>
+          </DialogHeader>
+          <Input readOnly value={url ?? "Creating link…"} onFocus={(e) => e.currentTarget.select()} className="font-mono text-base sm:text-sm" aria-label="Share link" />
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" disabled={!url} onClick={copy}><Copy className="size-4" />Copy link</Button>
+            <Button disabled={!url} onClick={nativeShare}><Share2 className="size-4" />Share</Button>
+          </div>
+          <Button variant="ghost" className="text-destructive" disabled={!url || busy} onClick={async () => { setBusy(true); try { await unshareRoutineAction(id); toast.success("Sharing stopped. The old link no longer works."); setOpen(false); router.refresh(); } finally { setBusy(false); } }}><Link2Off className="size-4" />Stop sharing</Button>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
