@@ -135,7 +135,7 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
 
       <section id="coach"><p className="mono-label mb-2">Coach · via Grok Bot</p>
         <div className="receipt rounded-xl border px-4 py-5 text-sm">
-          <p>Fortis has no built-in AI. Connect Grok Bot to the MCP server and it becomes your coach: it reads your history, weekly summary and stalled lifts, then suggests the next weight and reps.</p>
+          <p>Fortis has no built-in AI. Connect Grok Bot to the MCP server and it becomes your coach: it reads your history, weekly totals and stalled lifts, then suggests the next weight and reps.</p>
           <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted-foreground">
             <li>Create an API key under <a href="#mcp" className="underline underline-offset-4">MCP / API keys</a> above and copy it.</li>
             <li>In Grok Bot, add a custom MCP connector with URL <span className="font-mono text-foreground">{mcpUrl}</span>.</li>
