@@ -1,7 +1,7 @@
 import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getSettings, getStats, listWorkouts, personalRecords, progressSummary } from "@/lib/services";
+import { getSettings, getStats, getWeeklySummary, listWorkouts, personalRecords, progressSummary } from "@/lib/services";
 import { PageHeader, StatStrip } from "@/components/app-shell";
 import { toDisplay } from "@/lib/calc";
 import { WeeklyChart } from "./weekly-chart-lazy";
@@ -12,7 +12,7 @@ export const metadata = { title: "Profile" };
 
 export default async function Dashboard() {
   const u = await requireUser();
-  const [stats, weeks, s, recent, prs] = await Promise.all([getStats(u.id), progressSummary(u.id, 12), getSettings(u.id), listWorkouts(u.id, { limit: 3 }), personalRecords(u.id)]);
+  const [stats, weeks, s, recent, prs, wk] = await Promise.all([getStats(u.id), progressSummary(u.id, 12), getSettings(u.id), listWorkouts(u.id, { limit: 3 }), personalRecords(u.id), getWeeklySummary(u.id)]);
   const unit = s.unit as "kg" | "lb";
   return (
     <div className="mx-auto max-w-4xl">
@@ -24,6 +24,10 @@ export default async function Dashboard() {
         { label: "Week streak", value: stats.weekStreak },
         { label: "Volume", value: Math.round(toDisplay(stats.totalVolumeKg, unit)!).toLocaleString(), suffix: unit },
       ]} />
+      <Link href="/summary" className="mt-8 block rounded-xl border bg-card p-4 transition hover:-translate-y-0.5 active:translate-y-px">
+        <div className="flex items-baseline justify-between"><p className="mono-label">Weekly summary</p><span className="text-sm text-muted-foreground">Open →</span></div>
+        <p className="mt-2 text-sm leading-relaxed">{wk.recap}</p>
+      </Link>
       <section className="mt-8 rounded-xl border bg-card p-4">
         <p className="mono-label mb-3">Workouts per week · last 12</p>
         <WeeklyChart data={weeks.map((w) => ({ week: w.week.slice(5), workouts: w.workouts, volume: Math.round(toDisplay(w.volumeKg, unit)!) }))} />
