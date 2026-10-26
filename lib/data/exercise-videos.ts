@@ -1,11 +1,12 @@
 // Curated YouTube form-tutorial videos per built-in exercise, oEmbed-verified 2026-10-27.
-// vertical: true = a real YouTube Short (9:16, /shorts/ID returns 200); others are <=60s landscape clips from credible channels.
+// vertical: true = a real YouTube Short (9:16, /shorts/ID returns 200); others are short landscape tutorials from credible channels.
 // Static list: no runtime YouTube API. Rendered via a tap-to-load muted youtube-nocookie embed (components/form-videos.tsx).
 export type FormVideo = { videoId: string; title: string; channel: string; vertical?: boolean };
 export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   "bi_bench-press-barbell": [
-    { videoId: "CjHIKDQ4RQo", title: "How To Do A Barbell Bench Press Correctly", channel: "PureGym" },
-    { videoId: "CayG6UYqL8g", title: "How to do a Barbell Bench Press | Proper Form & Technique | NASM", channel: "National Academy of Sports Medicine (NASM)" },
+    { videoId: "_FkbD0FhgVE", title: "Perfect Bench Press Form (DO THIS!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "hWbUlkb5Ms4", title: "How To Bench Press With Perfect Technique (5 Steps)", channel: "Jeff Nippard", vertical: true },
+    { videoId: "PTzUJkPrrDw", title: "Bench Press Form Guide", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
   ],
   "bi_bench-press-dumbbell": [
     { videoId: "q--6_PuEV_c", title: "20 Second Form Fix: DB Bench Press", channel: "ATHLEAN-X™", vertical: true },
@@ -26,6 +27,10 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "jMQA3XtJSgo", title: "Incline Dumbbell Bench Press - OPEX Exercise Library", channel: "OPEX Fitness" },
     { videoId: "_NrQUYg7Nlc", title: "How to do a Incline Dumbbell Bench Press", channel: "National Academy of Sports Medicine (NASM)" },
   ],
+  "bi_decline-bench-press-barbell": [
+    { videoId: "LfyQBUKR8SE", title: "How To: Barbell Decline Bench Press", channel: "ScottHermanFitness" },
+    { videoId: "WS0PFiKEQJE", title: "Exercise Videos- Barbell Decline Bench Press", channel: "HyperStrike28" },
+  ],
   "bi_decline-bench-press-dumbbell": [
     { videoId: "Pf1nDoqx_1A", title: "Decline Dumbbell Bench Press  - Chest Exercise - Bodybuilding.com", channel: "Bodybuilding.com" },
     { videoId: "2B6WxyLaIrE", title: "Decline Dumbbell Bench Press", channel: "OPEX Fitness" },
@@ -45,6 +50,11 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "bK8cvTA9yP4", title: "Solid Cues For The Dumbbell Chest Fly #shorts", channel: "Mind Pump TV", vertical: true },
     { videoId: "rk8YayRoTRQ", title: "FIX THESE Dumbbell Chest Fly Mistakes!", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
   ],
+  "bi_incline-chest-fly-dumbbell": [
+    { videoId: "bDaIL_zKbGs", title: "How To: Incline Dumbbell Fly || Hit Your Chest HARD!", channel: "ScottHermanFitness" },
+    { videoId: "ewkmMvQjhIs", title: "Incline Dumbbell Fly - Chest Exercise", channel: "MyTraining App" },
+    { videoId: "U6brZJ0NCIo", title: "Dumbbell Incline Chest Fly", channel: "Women's Strength Nation by Holly Perkins" },
+  ],
   "bi_chest-fly-machine": [
     { videoId: "XZg28DIf1oc", title: "How to Perform the PERFECT Machine Chest Fly", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "XFnxc7gOIh8", title: "Chest Fly Machine Variations (KNOW THE DIFFERENCE!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -53,6 +63,10 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   "bi_cable-crossover": [
     { videoId: "QcTcWpkn_bw", title: "How To Do A Cable Fly/ Cable Crossover", channel: "PureGym" },
     { videoId: "XY6JrX1wyxk", title: "How to do a Cable Crossover  | Proper Form & Technique | NASM", channel: "National Academy of Sports Medicine (NASM)" },
+  ],
+  "bi_low-cable-fly": [
+    { videoId: "M1N804yWA-8", title: "How To: Low Cable Chest Fly", channel: "ScottHermanFitness" },
+    { videoId: "Ub49dt2B2VI", title: "Exercise Index - Low Cable Crossover", channel: "mountaindog1" },
   ],
   "bi_push-up": [
     { videoId: "L-Yd2YpIDkI", title: "You CAN Do Pushups", channel: "Hybrid Calisthenics", vertical: true },
@@ -87,8 +101,9 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "g4VkufehmUU", title: "RP Close Grip Bench Press", channel: "Renaissance Periodization" },
   ],
   "bi_deadlift-barbell": [
-    { videoId: "yPqv3ejnZvc", title: "How to do a Barbell Deadlift", channel: "National Academy of Sports Medicine (NASM)" },
-    { videoId: "Z6gcRfPNcZo", title: "How to Do a Barbell Deadlift | Proper Form & Technique | NASM", channel: "National Academy of Sports Medicine (NASM)" },
+    { videoId: "ZaTM37cfiDs", title: "How To Deadlift With Perfect Technique (Step By Step)", channel: "Jeff Nippard", vertical: true },
+    { videoId: "xNwpvDuZJ3k", title: "✅ The PERFECT Deadlift (DO THIS!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "8np3vKDBJfc", title: "The PERFECT Deadlift (5 Steps)", channel: "Jeremy Ethier", vertical: true },
   ],
   "bi_deadlift-trap-bar": [
     { videoId: "v709aJKv-gM", title: "Trap Bar Deadlift", channel: "Renaissance Periodization" },
@@ -148,11 +163,18 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_chin-up": [
     { videoId: "mRy9m2Q9_1I", title: "Proper Chin-Up Form", channel: "KILO Strength Society Education" },
+    { videoId: "dYDJpuDiJGc", title: "Chinups: Best Bodyweight Biceps Exercise (3 STEPS!!)", channel: "ATHLEAN-X™" },
+    { videoId: "yJuQ4XbXx_w", title: "Chin up | Basics and Progression | Charles R. Poliquin", channel: "Strength Sensei" },
   ],
   "bi_pull-up-assisted": [
     { videoId: "8ygapPMYK1I", title: "Assisted Normal Grip Pullup", channel: "Renaissance Periodization" },
     { videoId: "GdsRZAeeDUc", title: "Assisted Parallel Pullup", channel: "Renaissance Periodization" },
     { videoId: "L4ChTwrXTjc", title: "Assisted Underhand Pullup", channel: "Renaissance Periodization" },
+  ],
+  "bi_lat-pulldown-cable": [
+    { videoId: "bNmvKpJSWKM", title: "✅ The PERFECT Lat Pulldown (DO THIS!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "hnSqbBk15tw", title: "Stop Messing Up Your Lat Pulldowns", channel: "Jeff Nippard", vertical: true },
+    { videoId: "SqQxuEpXnF4", title: "Do You Have A Perfect Lat Pulldown? (Find Out)", channel: "Jeff Nippard", vertical: true },
   ],
   "bi_close-grip-lat-pulldown": [
     { videoId: "IjoFCmLX7z0", title: "How To Do A Close Grip Lat Pulldown", channel: "PureGym" },
@@ -200,14 +222,21 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_seal-row": [
     { videoId: "4H2ItXwUTp8", title: "Seal Row", channel: "Renaissance Periodization" },
+    { videoId: "KqbGIs16oAk", title: "Seal Row", channel: "Testosterone Nation" },
+    { videoId: "fBgDGkfT8Rc", title: "Exercise Index - Seal Rows", channel: "mountaindog1" },
   ],
   "bi_overhead-press-barbell": [
+    { videoId: "zoN5EH50Dro", title: "Perfect Overhead Press Form (DO THIS!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "4LBVP2Oe7fg", title: "✅ The PERFECT Barbell Overhead Press", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
-    { videoId: "cGnhixvC8uA", title: "How to do a Barbell Overhead Press", channel: "National Academy of Sports Medicine (NASM)" },
+    { videoId: "KP1sYz2VICk", title: "How to do the BARBELL OVERHEAD 'MILITARY' PRESS! | 2 Minute Tutorial", channel: "Max Euceda" },
   ],
   "bi_overhead-press-dumbbell": [
     { videoId: "b132W5N8Jrg", title: "Dumbbell Overhead Press", channel: "Testosterone Nation", vertical: true },
     { videoId: "Did01dFR3Lk", title: "Dumbbell Overhead Press - How To", channel: "Bobby Maximus" },
+  ],
+  "bi_seated-overhead-press-dumbbell": [
+    { videoId: "qybgyITCwcI", title: "Seated Overhead Press MISTAKE (DO THIS INSTEAD!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "b5JzUH8gsOg", title: "How to Do Seated Overhead Dumbbell Press | Arm Workout", channel: "Howcast" },
   ],
   "bi_shoulder-press-machine": [
     { videoId: "t2SmvH1iGjg", title: "3 Tips for the PERFECT Shoulder Press", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -218,6 +247,11 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "AjB-UXErljM", title: "The PERFECT Arnold Press", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "wRlIuexTowA", title: "Arnold Press Secrets: Avoid This Common Mistake for Maximum Results!", channel: "Bodybuilding.com", vertical: true },
     { videoId: "jeJttN2EWCo", title: "How To Do The Arnold Press", channel: "PureGym" },
+  ],
+  "bi_push-press": [
+    { videoId: "iaBVSJm78ko", title: "The Push Press", channel: "CrossFit" },
+    { videoId: "4DklYEgBLh0", title: "CrossFit - Coaching the Push Press with Miranda Oldroyd", channel: "CrossFit" },
+    { videoId: "ep30avTSMB0", title: "How to Perform the PUSH PRESS  - Shoulder Exercise Tutorial", channel: "Buff Dudes Workouts" },
   ],
   "bi_lateral-raise-dumbbell": [
     { videoId: "sS77YMMLX-8", title: "Stop Doing DB Lateral Raises Like This! (SAVE A FRIEND)", channel: "ATHLEAN-X™", vertical: true },
@@ -231,6 +265,8 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_lateral-raise-machine": [
     { videoId: "xMEs3zEzS8s", title: "Lateral Raise Machine", channel: "My PT Hub" },
+    { videoId: "0o07iGKUarI", title: "Machine Lateral Raise", channel: "Renaissance Periodization" },
+    { videoId: "siazAOww2Tc", title: "Life Fitness Pro2 Lateral Raise Instructions", channel: "Life Fitness / Hammer Strength" },
   ],
   "bi_front-raise-dumbbell": [
     { videoId: "hRJ6tR5-if0", title: "Dumbbell Front Raise", channel: "Renaissance Periodization" },
@@ -240,6 +276,11 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   "bi_front-raise-plate": [
     { videoId: "eJ_HNftboic", title: "❌ Front Raise Mistake", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "HN8HYJTOl8c", title: "How To Do Front Plate Raises", channel: "PureGym" },
+  ],
+  "bi_reverse-fly-dumbbell": [
+    { videoId: "WMaeSekozCM", title: "Dumbbell Reverse Flyes: A Simple Tutorial", channel: "Davis Diley" },
+    { videoId: "JoCRRZ3zRtI", title: "How to: Dumbbell Reverse Fly", channel: "HybridFitness" },
+    { videoId: "buuYPLVXsJg", title: "How to PROPERLY Dumbbell Rear Delt Fly | Reverse Dumbbell Fly Tutorial", channel: "Colossus Fitness" },
   ],
   "bi_reverse-fly-machine": [
     { videoId: "ZzeiSNGJOeE", title: "❌ Reverse Machine Fly Mistake", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -255,7 +296,8 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "t9GuiNQo1O4", title: "How To Do The Landmine Shoulder Press", channel: "Ian Nimblett" },
   ],
   "bi_handstand-push-up": [
-    { videoId: "B7eo-wHS7Fc", title: "How To Handstand Push-Up", channel: "FitnessFAQs", vertical: true },
+    { videoId: "h0HjqYRlXYg", title: "Master the Handstand Push Up - HSPU Tutorial", channel: "Calisthenicmovement" },
+    { videoId: "uZWjFe4fufA", title: "How to HANDSTAND PUSHUP | Beginner Tutorial", channel: "FitnessFAQs" },
   ],
   "bi_band-pull-apart": [
     { videoId: "MpyEGXCLS8M", title: "Band Pull-Apart", channel: "Testosterone Nation", vertical: true },
@@ -311,6 +353,10 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "i-MkPLU82Cw", title: "Spider Curl", channel: "Testosterone Nation" },
     { videoId: "9Dd8iiEUs_Q", title: "How To Do Spider Curls", channel: "PureGym" },
   ],
+  "bi_cable-rope-hammer-curl": [
+    { videoId: "7Tw9fpb5mOo", title: "Cable Rope Hammer Curl Tutorial", channel: "Prep Coach UK" },
+    { videoId: "iOwrtesXiDw", title: "Cable Rope Hammer Curls", channel: "Nikkiey Stott" },
+  ],
   "bi_bayesian-curl": [
     { videoId: "w3sXATQzGvc", title: "✅ The PERFECT Bayesian Curl (DO THIS!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "oAlhGm6_Qh4", title: "Bayesian Curl Complete Guide", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -321,10 +367,14 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "jKK_Q_hzNdc", title: "Reverse Grip EZ Bar Curls Narrow", channel: "My PT Hub" },
   ],
   "bi_triceps-pushdown-cable": [
-    { videoId: "6Fzep104f0s", title: "Cable Triceps Pushdown", channel: "Renaissance Periodization" },
+    { videoId: "1FjkhpZsaxc", title: "The Perfect Triceps Pushdown (DO THIS!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "rGI88vZdArg", title: "🚫 Stop Messing Up Your Triceps Pushdowns!", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "-zLyUAo1gMw", title: "How to do the CABLE TRICEP PUSHDOWN! | 2 Minute Tutorial", channel: "Max Euceda" },
   ],
   "bi_triceps-rope-pushdown": [
     { videoId: "e5aj8hhCPkA", title: "Rope Triceps Pushdown", channel: "Testosterone Nation" },
+    { videoId: "-xa-6cQaZKY", title: "Rope Pushdown", channel: "Renaissance Periodization" },
+    { videoId: "vB5OHsJ3EME", title: "How To: Rope Push-Down", channel: "ScottHermanFitness" },
   ],
   "bi_overhead-triceps-extension-cable": [
     { videoId: "oZ1MbUl-_-w", title: "✅ Do Overhead Cable Tricep Extensions LIKE THIS!", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -338,6 +388,8 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_skullcrusher-ez-bar": [
     { videoId: "eluOhtYkm-0", title: "EZ Bar Skull Crusher - OPEX Exercise Library", channel: "OPEX Fitness" },
+    { videoId: "r63Xtw-RabY", title: "Narrow Grip EZ Bar Skullcrushers", channel: "My PT Hub" },
+    { videoId: "D47mYdoKllE", title: "EZ Bar Skull Crushers - Triceps Exercise", channel: "MyTraining App" },
   ],
   "bi_skullcrusher-dumbbell": [
     { videoId: "jPjhQ2hsAds", title: "Dumbbell Skullcrusher", channel: "Renaissance Periodization" },
@@ -372,6 +424,15 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "1AFJTda1btg", title: "The PERFECT Machine Triceps Extension", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "Bx8ga1BLHLE", title: "Machine Triceps Extension", channel: "Renaissance Periodization" },
   ],
+  "bi_wrist-curl-barbell": [
+    { videoId: "lfQR7oVS8eo", title: "Barbell Standing Wrist Curl", channel: "Renaissance Periodization" },
+    { videoId: "3VLTzIrnb5g", title: "How To Do Wrist Curls", channel: "PureGym" },
+    { videoId: "_NhZ7uyE6lg", title: "How To: Standing Wrist Curl", channel: "ScottHermanFitness" },
+  ],
+  "bi_reverse-wrist-curl": [
+    { videoId: "FW7URAaC-vE", title: "How To: Reverse Seated Wrist Curl", channel: "ScottHermanFitness" },
+    { videoId: "krZ6pWGZ8xo", title: "How to Do Dumbbell Reverse Wrist Curls", channel: "LIVESTRONG" },
+  ],
   "bi_farmer-s-walk": [
     { videoId: "w77p6m_SMx0", title: "Load up those Farmer's Walks!", channel: "Alan Thrall (Untamed Strength)", vertical: true },
     { videoId: "8OtwXwrJizk", title: "How To Do A Farmer's Walk (Farmer's Carry)", channel: "PureGym" },
@@ -392,6 +453,8 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_high-bar-squat": [
     { videoId: "i7J5h7BJ07g", title: "High Bar Squat", channel: "Renaissance Periodization" },
+    { videoId: "d38ChgL-Vek", title: "High Bar Back Squat Basics", channel: "The Physio Fix" },
+    { videoId: "dW5-C1fsMjk", title: "How to Properly High Bar Squat (Olympic Style)", channel: "OmarIsuf" },
   ],
   "bi_box-squat": [
     { videoId: "XQmZ44xQSw4", title: "Box Squat", channel: "Testosterone Nation", vertical: true },
@@ -448,9 +511,13 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_pistol-squat": [
     { videoId: "jUQzp0KWgQY", title: "How To Pistol Squat For Beginners", channel: "FitnessFAQs", vertical: true },
+    { videoId: "vq5-vdgJc0I", title: "How to Get Your First PISTOL SQUAT (Step-by-Step Progression)", channel: "Squat University" },
+    { videoId: "88VxdkBpiFE", title: "Step-By-Step Instruction on How to Pistol Squat", channel: "Mind Pump TV" },
   ],
   "bi_air-squat": [
     { videoId: "iiKn5FiVUjI", title: "Air Squat - OPEX Exercise Library", channel: "OPEX Fitness" },
+    { videoId: "C_VtOYc6j5c", title: "The Air Squat: CrossFit Foundational Movement", channel: "CrossFit" },
+    { videoId: "rMvwVtlqjTE", title: "The Air Squat", channel: "CrossFit" },
   ],
   "bi_sissy-squat": [
     { videoId: "lrPPo3PkUYI", title: "How To Do Sissy Squats", channel: "Mind Pump TV", vertical: true },
@@ -459,6 +526,12 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_belt-squat": [
     { videoId: "4UARr5I0MY0", title: "Get Huge Quads w/ The Belt Squat!!", channel: "Renaissance Periodization", vertical: true },
+    { videoId: "FCIZZvIM-I0", title: "Exercise Tutorial - How to use a belt squat", channel: "Nexus Performance Australia" },
+  ],
+  "bi_pendulum-squat": [
+    { videoId: "J8czl8DDnJ4", title: "The Pendulum Squat", channel: "Testosterone Nation" },
+    { videoId: "wc2t62qiqAI", title: "Exercise Index - Pendulum Squat", channel: "mountaindog1" },
+    { videoId: "Nmq-8AK-GJQ", title: "HOW TO: PENDULUM SQUAT", channel: "BEN MIGHTY" },
   ],
   "bi_romanian-deadlift-barbell": [
     { videoId: "9RrhTtcFMDk", title: "RDL Tips | BB Athlete @samileigh.fit", channel: "Bodybuilding.com", vertical: true },
@@ -468,6 +541,11 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "hu3jRvTc_po", title: "The PERFECT Dumbbell Romanian Deadlift", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "aa57T45iFSE", title: "How to do a Dumbbell Romanian Deadlift | Proper Form & Technique | NASM", channel: "National Academy of Sports Medicine (NASM)" },
     { videoId: "xAL7lHwj30E", title: "Dumbbell Romanian Deadlift", channel: "Onnit Academy" },
+  ],
+  "bi_stiff-leg-deadlift": [
+    { videoId: "Wou9zVQrAfs", title: "Romanian vs Stiff-Leg Deadlift (KNOW THE DIFFERENCE!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "AH7gaaT_tU8", title: "Lift With Your BACK : How To Stiff Leg Deadlift", channel: "Alan Thrall (Untamed Strength)" },
+    { videoId: "Xy1O99wrKYE", title: "Exercise Index:  Leg Stiff leg Deadlift the CORRECT WAY", channel: "mountaindog1" },
   ],
   "bi_lying-leg-curl": [
     { videoId: "6eVuy_P5FR8", title: "Lying Leg Curl Variations - Know the Difference!", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -500,9 +578,9 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "aweBS7K71l8", title: "How To Do A Barbell Hip Thrust", channel: "PureGym" },
   ],
   "bi_hip-thrust-machine": [
-    { videoId: "-1cAnwFNBLg", title: "Proper Hip Thrust Form #shorts", channel: "Bret Contreras Glute Guy", vertical: true },
-    { videoId: "p1dTK5f73sY", title: "How to set up for hip thrusts #shorts", channel: "Bodybuilding.com", vertical: true },
+    { videoId: "sxOrVuCvWq4", title: "The PERFECT Machine Hip Thrust", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "ZSPmIyX9RZs", title: "Machine Hip Thrust", channel: "Renaissance Periodization" },
+    { videoId: "tztHvSLdXLA", title: "How to PROPERLY Machine Hip Thrust (FIX YOUR FORM NOW)", channel: "Colossus Fitness" },
   ],
   "bi_glute-bridge": [
     { videoId: "XLXGydU5DdU", title: "How to do a glute bridge | Bupa Health", channel: "Bupa Health" },
@@ -515,6 +593,11 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_hip-abduction-machine": [
     { videoId: "tu4o4quPv2k", title: "Hip Abduction Machine (KNOW THE DIFFERENCE!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "ctSsNDgOTmk", title: "Planet Fitness Hip Abduction Machine - How to use the hip abduction machine at Planet Fitness", channel: "Planet Fitness Beginner" },
+  ],
+  "bi_hip-adduction-machine": [
+    { videoId: "GmRSV_n2E_0", title: "How To: Hip Adduction (Cybex)", channel: "ScottHermanFitness" },
+    { videoId: "iYcS9jCA6gE", title: "Planet Fitness Hip Adduction Machine - How to use the hip adduction Machine at Planet Fitness", channel: "Planet Fitness Beginner" },
   ],
   "bi_cable-kickback": [
     { videoId: "CyJtnoZRxPw", title: "The PERFECT Cable Kickback", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -526,11 +609,19 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "jwILQCx61ts", title: "Fix Your Kettlebell Swing", channel: "FitnessFAQs", vertical: true },
     { videoId: "1cVT3ee9mgU", title: "Kettlebell Swing", channel: "StrongFirst" },
   ],
+  "bi_standing-calf-raise": [
+    { videoId: "x41IWlX4Rqo", title: "You're Doing Calf Raises WRONG", channel: "Renaissance Periodization", vertical: true },
+    { videoId: "a-x_NR-ibos", title: "Calf Raise Variations (KNOW THE DIFFERENCE!)", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
+    { videoId: "K_jsGgztcGU", title: "Standing Calf Raise - The Proper Lift - BPI Sports", channel: "BPI Sports" },
+  ],
   "bi_seated-calf-raise": [
     { videoId: "3ZRe_QpvRPg", title: "How To Do A Seated Calf Raise", channel: "PureGym" },
+    { videoId: "BxfKOyI8sUg", title: "How to Do a Seated Calf Raise: A Guide from Physical Therapists", channel: "Hinge Health" },
+    { videoId: "JbyjNymZOt0", title: "How to Do Seated Calf Raises", channel: "LIVESTRONG" },
   ],
   "bi_calf-press-leg-press": [
     { videoId: "8k435cj30gc", title: "How to do a Leg Press Calf Raise | Proper Form & Technique | NASM", channel: "National Academy of Sports Medicine (NASM)" },
+    { videoId: "dhRz1Ns60Zg", title: "How To Do Calf Raises On The Leg Press", channel: "PureGym" },
   ],
   "bi_single-leg-calf-raise": [
     { videoId: "qPd73snQfUs", title: "Single-Leg Calf Raise (HSS)", channel: "Hospital for Special Surgery" },
@@ -546,6 +637,8 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_crunch": [
     { videoId: "NnVhqMQRvmM", title: "AB EXERCISE - How to do an abdominal crunch (ab crunch)", channel: "PureGym" },
+    { videoId: "MKmrqcoCZ-M", title: "How to Do a Stomach Crunch Properly | Gym Workout", channel: "Howcast" },
+    { videoId: "GWIEON0VSaY", title: "How To Do A Crunch Properly | Beginners Tutorial", channel: "Glamrs" },
   ],
   "bi_cable-crunch": [
     { videoId: "K2m0jj6RfYg", title: "STOP Making This Cable Crunch MISTAKE!", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
@@ -554,6 +647,8 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_sit-up": [
     { videoId: "pCX65Mtc_Kk", title: "How To Do a Sit Up Correctly", channel: "Detroit Medical Center" },
+    { videoId: "onaQ0v_J5uU", title: "How To Sit up | Nuffield Health", channel: "Nuffield Health" },
+    { videoId: "1fbU_MkV7NE", title: "How to Do a Sit Up", channel: "LIVESTRONG" },
   ],
   "bi_hanging-leg-raise": [
     { videoId: "kRQnFpdZ69g", title: "Hanging Leg Raise", channel: "Testosterone Nation", vertical: true },
@@ -566,6 +661,7 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   "bi_lying-leg-raise": [
     { videoId: "5uB0KaoCF9w", title: "❌ Lying Leg Raise Mistake (STOP DOING THIS!) #shorts", channel: "Andrew Kwong (DeltaBolic)", vertical: true },
     { videoId: "Wp4BlxcFTkE", title: "Lying Leg Raises", channel: "LivestrongWoman" },
+    { videoId: "3oIpxsn6FxQ", title: "Perfect Lying Leg Raises Form to Strengthen Your Core & Avoid Back Pain", channel: "Mobility Doc" },
   ],
   "bi_ab-wheel-rollout": [
     { videoId: "6DUbeqa9g3M", title: "Ab Wheel Rollouts For Beginners", channel: "FitnessFAQs", vertical: true },
@@ -595,6 +691,10 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "eqg47ZuGZXQ", title: "Strengthening the core: Bicycle Crunch", channel: "UCLA Health" },
     { videoId: "VaL7XWK3MVE", title: "How to Do a Bicycle Crunch Exercise | 30 Seconds | MedBridge", channel: "Medbridge" },
   ],
+  "bi_woodchopper-cable": [
+    { videoId: "iWxTGXIViro", title: "Cable Woodchopper", channel: "Ekspert Sports Performance" },
+    { videoId: "7eCm3WQgzmI", title: "How to PROPERLY Cable Woodchopper Oblique Twist For Shredded Obliques", channel: "Colossus Fitness" },
+  ],
   "bi_hollow-hold": [
     { videoId: "EsnM8eBtazU", title: "Hollow Body Hold - OPEX Exercise Library", channel: "OPEX Fitness" },
     { videoId: "JnuYfsJ3CKg", title: "How to Do a Hollow Body Hold : Gymnastics", channel: "eHowSports" },
@@ -611,11 +711,22 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_hang-clean": [
     { videoId: "WCdhjfg7fv4", title: "Movement Demo - The Hang Clean", channel: "Rogue Fitness" },
+    { videoId: "TjTEOme9fvw", title: "The Hang Clean", channel: "CrossFit" },
+    { videoId: "0aP3tgKZcHQ", title: "The Hang Power Clean", channel: "CrossFit" },
+  ],
+  "bi_clean-and-jerk": [
+    { videoId: "PjY1rH4_MOA", title: "The Clean and Jerk", channel: "CrossFit" },
+    { videoId: "8miqQQJEsO0", title: "CrossFit - Coaching the Clean and Jerk with Natalie Burgener", channel: "CrossFit" },
+    { videoId: "oVAJkyyVj3o", title: "How to Do a Clean and Jerk by Wodstar", channel: "Wodstar" },
   ],
   "bi_snatch": [
     { videoId: "oNLCtvlqfmE", title: "The SECRET Moves to a Better Snatch Lift!😳", channel: "Squat University", vertical: true },
     { videoId: "2YkJ8QMf5yA", title: "Mastering Snatch Technique: Building Mechanics Without Weight", channel: "Bodybuilding.com", vertical: true },
     { videoId: "Iy0vPROslAA", title: "How To Do A Squat Snatch", channel: "PureGym" },
+  ],
+  "bi_thruster-barbell": [
+    { videoId: "Zvt5-mugUco", title: "How To Do Barbell Thrusters | Exercise Guide", channel: "Bodybuilding.com" },
+    { videoId: "Pb_tUPpU-UA", title: "Barbell Thruster", channel: "Central Athlete" },
   ],
   "bi_burpee": [
     { videoId: "NCqbpkoiyXE", title: "How To Burpee | Nuffield Health", channel: "Nuffield Health" },
@@ -628,9 +739,13 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_kettlebell-clean-and-press": [
     { videoId: "sAtZ4yAsQnI", title: "Kettlebell Clean And Press", channel: "Men's Health" },
+    { videoId: "ckjR4jYtuYc", title: "Kettlebell Clean and Press Variations - Nuffield Health", channel: "Nuffield Health" },
+    { videoId: "48qvCvJJr8Y", title: "Kettlebell Clean and Press - a Primer on basic technique", channel: "Mark Wildman" },
   ],
   "bi_sled-push": [
     { videoId: "QwscR2BhdEg", title: "How To Do The Sled Push", channel: "PureGym" },
+    { videoId: "QaTrePoCT4g", title: "The ULTIMATE Sled Push/Pull Tutorial", channel: "Squat University" },
+    { videoId: "9XRRXaUpnLk", title: "How To Do The Sled Push The RIGHT Way! (AVOID MISTAKES!)", channel: "Mind Pump TV" },
   ],
   "bi_battle-ropes": [
     { videoId: "DfuvSn73Up4", title: "Battle Ropes Basics", channel: "Testosterone Nation" },
@@ -645,8 +760,19 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
     { videoId: "ZseoNNiEtIw", title: "Perfect Your Muscle-Up Technique", channel: "FitnessFAQs", vertical: true },
     { videoId: "N4u_sP0bbWI", title: "How To Muscle-Up For Beginners", channel: "FitnessFAQs", vertical: true },
   ],
+  "bi_running": [
+    { videoId: "brFHyOtTwH4", title: "What Is Perfect Running Form? | Run Technique Tips For All Runners", channel: "Global Triathlon Network" },
+    { videoId: "_kGESn8ArrU", title: "How To Run Properly | Running Technique Explained", channel: "Global Triathlon Network" },
+    { videoId: "-AASu9CNFoM", title: "How to Run Properly (Correct Running Form & Technique)", channel: "Progressive Soccer" },
+  ],
   "bi_treadmill": [
     { videoId: "LsswRe8_I3g", title: "Treadmill Slow Jogging Technique — Quick Technique Demo", channel: "Fitness By Physio" },
+    { videoId: "z3l-nIMIbPk", title: "How to use a Treadmill | Planet Fitness", channel: "Planet Fitness" },
+    { videoId: "76XnbF5DBFY", title: "How To Use A Treadmill Correctly | GTN'S Guide For Beginners", channel: "Global Triathlon Network" },
+  ],
+  "bi_cycling": [
+    { videoId: "hPcR6MQ5dJo", title: "How To Pedal | Cycling Technique", channel: "Global Cycling Network" },
+    { videoId: "EW1_TIs_6Tw", title: "How To Improve Your Bike Handling - 5 Key Cycling Skills", channel: "Global Cycling Network" },
   ],
   "bi_rowing-machine": [
     { videoId: "fxfhQMbATCw", title: "Rowing Technique Tips", channel: "CrossFit" },
@@ -654,5 +780,29 @@ export const EXERCISE_VIDEOS: Record<string, FormVideo[]> = {
   ],
   "bi_elliptical": [
     { videoId: "3pCdU1XkNm8", title: "Proper Form on an Elliptical", channel: "LIVESTRONG" },
+    { videoId: "gpxUeHJ-Ps0", title: "Proper elliptical technique", channel: "EverFit Strategies" },
+    { videoId: "j38LNpTLwzY", title: "HOW TO USE AN ELLIPTICAL | Beginner's Guide", channel: "Naomi Kong" },
+  ],
+  "bi_stair-climber": [
+    { videoId: "ST-5lD69XqU", title: "How to use a Stair Climber | Planet Fitness", channel: "Planet Fitness" },
+    { videoId: "ww3YV_N6U_U", title: "StairMaster Workout and Exercises! How to Use StairMaster with Proper Form", channel: "McKinley Health Center" },
+  ],
+  "bi_jump-rope": [
+    { videoId: "u3zgHI8QnqE", title: "How To Jump Rope | The Right Way | Well+Good", channel: "Well+Good" },
+    { videoId: "wqN5bRkZPK0", title: "How to Jump Rope (Beginner to Expert)", channel: "Tony Jeffries" },
+  ],
+  "bi_swimming": [
+    { videoId: "5HLW2AI1Ink", title: "Freestyle Swimming Technique | Stroke", channel: "Speedo" },
+    { videoId: "Gq2asyrI0MI", title: "Freestyle Swimming Breathing Technique | Step-by-Step Drills For Beginners", channel: "Rocket Swimming" },
+    { videoId: "XS3_lChWJC4", title: "How To Swim Without Getting Tired | Essential Tips For Swimming", channel: "Global Triathlon Network" },
+  ],
+  "bi_walking": [
+    { videoId: "q3JYT_jKs7Y", title: "How to Walk Faster | Power Walking", channel: "SIKANA English" },
+    { videoId: "zAmsHhc2zCw", title: "Learning the Basic Technique | Nordic Walking", channel: "SIKANA English" },
+  ],
+  "bi_assault-bike": [
+    { videoId: "RPY7HTGfOiU", title: "How to Use an Assault Bike", channel: "Peak Human Performance" },
+    { videoId: "mY9ihujdkc0", title: "Assault Bike Tips and Tricks for Efficiency and Power", channel: "Marcus Filly" },
+    { videoId: "Fv8tIEJhcsc", title: "4 Very Important Air Assault Bike Tips", channel: "ConstantlyVariedFitness" },
   ],
 };

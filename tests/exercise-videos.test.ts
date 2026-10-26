@@ -17,3 +17,8 @@ test("exercise video data integrity", () => {
     }
   }
 });
+
+test("every built-in exercise has at least one form video", () => {
+  const missing = BUILTIN_EXERCISES.map(([n]) => builtinId(n)).filter((id) => !(EXERCISE_VIDEOS[id]?.length >= 1));
+  assert.deepEqual(missing, [], `exercises without videos: ${missing.join(", ")}`);
+});
