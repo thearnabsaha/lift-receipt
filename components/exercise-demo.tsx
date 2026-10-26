@@ -36,7 +36,7 @@ export function DemoFrames({ demo, name, caption = true }: { demo: Demo; name: s
   );
 }
 
-function Credit({ className = "" }: { className?: string }) {
+function Credit({ className = "text-right" }: { className?: string }) {
   return (
       <p className={`mt-1.5 font-mono text-[10px] uppercase tracking-widest text-muted-foreground ${className}`}>
         Drawing: <a href={DEMO_CREDIT.url} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">{DEMO_CREDIT.name}</a> · <a href={DEMO_CREDIT.licenseUrl} target="_blank" rel="noreferrer" className="underline-offset-2 hover:underline">{DEMO_CREDIT.license}</a>
@@ -98,7 +98,7 @@ export function DemoBlock({ demo, name }: { demo: Demo; name: string }) {
           <div className="border-t border-dashed px-3 py-3"><Steps steps={steps} /></div>
         </details>
       )}
-      <Credit className="text-left" />
+      <Credit className="mt-2 text-left" />
     </div>
   );
 }
