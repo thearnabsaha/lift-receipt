@@ -103,7 +103,7 @@ export function MuscleMap({ data, unit }: { data: MuscleData; unit: "kg" | "lb" 
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-[10px] text-muted-foreground">Warm-ups excluded · secondary muscles count half · diagram: MuscleMap (MIT) via openGym</p>
+          <p className="mt-3 text-[10px] text-muted-foreground">Warm-ups excluded · secondary muscles count half</p>
         </div>
       )}
     </section>
