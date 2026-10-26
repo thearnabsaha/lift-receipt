@@ -79,6 +79,38 @@ const handler = createMcpHandler(
       return ok(await svc.createRoutine(u, { name: a.name, folder: a.folder, notes: a.notes, exercises: await toExercises(u, a.exercises, unit) }));
     });
 
+    server.registerTool("update_routine", {
+      title: "Update routine",
+      description: "Edit one of your routines. Only provided fields change. `exercises` REPLACES the whole exercise list (same shape as create_routine). `removeExerciseIds` drops exercises by exercise id from the current list, keeping the rest (order and sets) untouched. Use one or the other.",
+      inputSchema: z.object({
+        routineId: z.string(), name: z.string().optional(), folder: z.string().nullable().optional(), notes: z.string().nullable().optional(), unit: unitIn,
+        exercises: z.array(exIn).optional().describe("Full replacement list"),
+        removeExerciseIds: z.array(z.string()).optional().describe("Exercise ids to remove from the existing list"),
+      }),
+    }, async (a, ctx) => {
+      const u = uid(ctx);
+      const r = await svc.getRoutine(u, a.routineId);
+      if (!r) return { content: [{ type: "text" as const, text: "Routine not found" }], isError: true };
+      if (a.exercises && a.removeExerciseIds) return { content: [{ type: "text" as const, text: "Pass either exercises or removeExerciseIds, not both" }], isError: true };
+      let exercises = r.exercises;
+      if (a.exercises) exercises = await toExercises(u, a.exercises, await unitFor(u, a.unit));
+      else if (a.removeExerciseIds) { const rm = new Set(a.removeExerciseIds); exercises = r.exercises.filter((e) => !rm.has(e.exerciseId)); }
+      return ok(await svc.updateRoutine(u, r.id, {
+        name: a.name ?? r.name, folder: a.folder !== undefined ? a.folder : r.folder, notes: a.notes !== undefined ? a.notes : r.notes, exercises,
+      }));
+    });
+
+    server.registerTool("delete_routine", {
+      title: "Delete routine", description: "Permanently delete one of your routines (past workouts are kept).",
+      inputSchema: z.object({ routineId: z.string() }),
+    }, async (a, ctx) => {
+      const u = uid(ctx);
+      const r = await svc.getRoutine(u, a.routineId);
+      if (!r) return { content: [{ type: "text" as const, text: "Routine not found" }], isError: true };
+      await svc.deleteRoutine(u, r.id);
+      return ok({ deleted: true, routineId: r.id, name: r.name });
+    });
+
     server.registerTool("start_workout", {
       title: "Start workout", description: "Start a new in-progress workout (optionally from a routine). Returns workoutId; then use add_set and finish_workout.",
       inputSchema: z.object({ name: z.string().optional(), routineId: z.string().optional(), startedAt: z.string().optional().describe("ISO datetime, default now") }),

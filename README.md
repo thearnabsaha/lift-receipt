@@ -35,7 +35,7 @@ Endpoint: `https://<your-domain>/api/mcp` — Streamable HTTP, auth with `Author
 { "mcpServers": { "fortis": { "url": "https://<your-domain>/api/mcp", "headers": { "Authorization": "Bearer lr_..." } } } }
 ```
 
-Tools: `list_exercises`, `create_exercise`, `list_routines`, `get_routine`, `create_routine`, `start_workout`, `log_workout`, `add_set`, `finish_workout`, `list_workouts`, `get_workout`, `delete_workout`, `get_exercise_history`, `get_personal_records`, `get_progress_summary`, `log_measurement`, `list_measurements`, `get_stats`.
+Tools: `list_exercises`, `create_exercise`, `list_routines`, `get_routine`, `create_routine`, `update_routine`, `delete_routine`, `start_workout`, `log_workout`, `add_set`, `finish_workout`, `list_workouts`, `get_workout`, `delete_workout`, `get_exercise_history`, `get_personal_records`, `get_progress_summary`, `log_measurement`, `list_measurements`, `get_stats`.
 All weight tools accept a `unit` (`kg`/`lb`); data is stored in kg.
 
 Smoke test: `MCP_URL=https://<domain>/api/mcp MCP_KEY=lr_... node scripts/mcp-smoke.mjs`
