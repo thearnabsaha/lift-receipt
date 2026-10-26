@@ -2,7 +2,7 @@ import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { listRoutines, sharedRoutineIds } from "@/lib/services";
+import { lastRoutineId, listRoutines, sharedRoutineIds } from "@/lib/services";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/pwa";
@@ -12,7 +12,7 @@ export const metadata = { title: "Workout" };
 
 export default async function WorkoutPage() {
   const u = await requireUser();
-  const [routines, shared] = await Promise.all([listRoutines(u.id), sharedRoutineIds(u.id)]);
+  const [routines, shared, lastId] = await Promise.all([listRoutines(u.id), sharedRoutineIds(u.id), lastRoutineId(u.id)]);
   const folders = new Map<string, typeof routines>();
   for (const r of routines) { const k = r.folder || "My routines"; folders.set(k, [...(folders.get(k) ?? []), r]); }
   return (
@@ -20,7 +20,7 @@ export default async function WorkoutPage() {
       <InstallPrompt />
       <ActiveWorkoutBanner />
       <PageHeader label="Start" title="Start workout" subtitle="Empty session, or pick up a routine." />
-      <StartWorkout />
+      <StartWorkout routines={routines.map((r) => ({ id: r.id, name: r.name, folder: r.folder, notes: r.notes, exercises: r.exercises }))} lastRoutineId={lastId} />
       <div className="mt-10 mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Routines</h2>
         <Button asChild variant="outline" size="sm"><Link href="/routines/new"><Plus className="size-4" />Routine</Link></Button>

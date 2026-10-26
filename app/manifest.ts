@@ -20,10 +20,13 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
       { src: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png", purpose: "any" },
     ],
+    // Android/desktop Chrome & Edge show these on long-press / right-click. iOS Safari ignores manifest shortcuts.
     shortcuts: [
       { name: "Start workout", short_name: "Start", url: "/workout?start=1", icons: [{ src: "/icons/shortcut-96.png", sizes: "96x96" }] },
+      { name: "Start last routine", short_name: "Last routine", url: "/workout?routine=last", icons: [{ src: "/icons/shortcut-96.png", sizes: "96x96" }] },
       { name: "History", url: "/history", icons: [{ src: "/icons/shortcut-96.png", sizes: "96x96" }] },
-      { name: "Measurements", url: "/measure", icons: [{ src: "/icons/shortcut-96.png", sizes: "96x96" }] },
+      { name: "Records", url: "/records", icons: [{ src: "/icons/shortcut-96.png", sizes: "96x96" }] },
+      { name: "Measure", url: "/measure", icons: [{ src: "/icons/shortcut-96.png", sizes: "96x96" }] },
     ],
   };
 }

@@ -28,15 +28,21 @@ function useStart() {
   };
 }
 
-export function StartWorkout() {
+type R = { id: string; name: string; folder?: string | null; notes: string | null; exercises: WorkoutExercise[] };
+/** Deep links (Home Screen web clips, iOS Shortcuts, manifest shortcuts): /workout?start=1, /workout?routine=<id>, /workout?routine=last */
+export function StartWorkout({ routines = [], lastRoutineId = null }: { routines?: R[]; lastRoutineId?: string | null }) {
   const start = useStart();
   const router = useRouter();
   useEffect(() => {
-    // PWA shortcut: /workout?start=1
-    if (new URLSearchParams(location.search).get("start") === "1") {
-      history.replaceState(null, "", "/workout");
-      if (localStorage.getItem(ACTIVE_KEY)) router.push("/workout/active"); else start();
-    }
+    const q = new URLSearchParams(location.search);
+    const rid = q.get("routine"), go = q.get("start") === "1";
+    if (!go && !rid) return;
+    history.replaceState(null, "", "/workout");
+    if (localStorage.getItem(ACTIVE_KEY)) { if (rid) toast("A workout is already in progress"); router.push("/workout/active"); return; }
+    if (!rid) return start();
+    const r = routines.find((x) => x.id === (rid === "last" ? lastRoutineId : rid));
+    if (r) start(r);
+    else toast.error(rid === "last" ? "No routine used yet. Pick one below." : "That routine no longer exists. Pick one below.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (

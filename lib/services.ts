@@ -141,6 +141,11 @@ export async function updateRoutine(userId: string, routineId: string, input: z.
     .where(and(eq(routine.id, routineId), eq(routine.userId, userId)));
   return getRoutine(userId, routineId);
 }
+/** Routine behind the most recent workout that came from one (for /workout?routine=last). */
+export async function lastRoutineId(userId: string) {
+  const [r] = await db.select({ id: workout.routineId }).from(workout).innerJoin(routine, eq(routine.id, workout.routineId)).where(eq(workout.userId, userId)).orderBy(desc(workout.startedAt)).limit(1);
+  return r?.id ?? null;
+}
 export async function deleteRoutine(userId: string, routineId: string) {
   await db.delete(routine).where(and(eq(routine.id, routineId), eq(routine.userId, userId)));
 }
