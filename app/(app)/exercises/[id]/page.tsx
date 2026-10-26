@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { favoriteIds, exerciseHistory, getExercise, getSettings, personalRecords } from "@/lib/services";
+import { favoriteIds, exerciseHistory, getExercise, getSettings, personalRecords, userTz } from "@/lib/services";
 import { toDisplay, round } from "@/lib/calc";
 import { StatStrip } from "@/components/app-shell";
 import { ExerciseCharts } from "./charts";
@@ -16,6 +16,7 @@ export default async function ExercisePage({ params }: PageProps<"/exercises/[id
   const ex = await getExercise(u.id, id);
   if (!ex) notFound();
   const [hist, [rec], s, favs] = await Promise.all([exerciseHistory(u.id, id), personalRecords(u.id, id), getSettings(u.id), favoriteIds(u.id)]);
+  const tz = await userTz(u.id);
   const unit = s.unit as "kg" | "lb";
   const d = (v: number) => toDisplay(v, unit)!;
   return (
@@ -46,7 +47,7 @@ export default async function ExercisePage({ params }: PageProps<"/exercises/[id
         <h2 className="mb-3 text-xl font-semibold">History</h2>
         {[...hist].reverse().map((h) => (
           <Link key={h.workoutId} href={`/history/${h.workoutId}`} className="mb-2 block rounded-xl border bg-card px-4 py-3 hover:bg-muted/40">
-            <div className="flex justify-between"><span className="font-medium">{h.workoutName}</span><span className="mono-label">{h.date.toLocaleDateString()}</span></div>
+            <div className="flex justify-between"><span className="font-medium">{h.workoutName}</span><span className="mono-label">{h.date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: tz })}</span></div>
             <p className="mt-1 font-mono text-xs text-muted-foreground">{h.sets.map((x) => `${x.weight != null ? d(x.weight) : "BW"}×${x.reps ?? "-"}`).join("  ")}</p>
           </Link>
         ))}
