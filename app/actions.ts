@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import * as svc from "@/lib/services";
 import type { WorkoutExercise } from "@/lib/db/schema";
+import * as io from "@/lib/data-io";
+import type { ImportedWorkout } from "@/lib/importers";
 
 const done = (r: unknown = true) => { revalidatePath("/", "layout"); return r; };
 
@@ -75,4 +77,18 @@ export async function unshareRoutineAction(routineId: string) {
 }
 export async function importSharedRoutineAction(token: string) {
   const u = await requireUser(); const r = await svc.importSharedRoutine(u.id, token); done(); return { id: r.id, name: r.name };
+}
+
+// ---------- import / backup (chunked by the client) ----------
+export async function previewImportAction(ws: { startedAt: string; names: string[]; sets: number }[]) {
+  const u = await requireUser(); return io.previewImport(u.id, ws);
+}
+export async function importChunkAction(ws: ImportedWorkout[], last: boolean) {
+  const u = await requireUser(); const r = await io.importChunk(u.id, ws); if (last) done(); return r;
+}
+export async function previewRestoreAction(b: unknown) {
+  const u = await requireUser(); return io.previewRestore(u.id, b);
+}
+export async function restoreChunkAction(b: unknown, last: boolean) {
+  const u = await requireUser(); const r = await io.restoreChunk(u.id, b); if (last) done(); return r;
 }

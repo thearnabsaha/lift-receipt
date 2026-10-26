@@ -1,20 +1,18 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import Papa from "papaparse";
-import { Copy, Download, KeyRound, LogOut, Upload } from "lucide-react";
+import { Copy, Download, KeyRound, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { playSetDone, testSound } from "@/lib/sound";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { createApiKeyAction, importWorkoutsAction, revokeApiKeyAction, updateSettingsAction } from "@/app/actions";
+import { createApiKeyAction, revokeApiKeyAction, updateSettingsAction } from "@/app/actions";
 import { authClient } from "@/lib/auth-client";
 import { usePref, setPref, useVolume, setVolume, useIdleHours, setIdleHours } from "@/lib/prefs";
-import { KG_PER_LB } from "@/lib/calc";
-import type { SetType, WorkoutExercise } from "@/lib/db/schema";
+import { ImportRow, BackupRows } from "./data-tools";
 
 type Key = { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null; revokedAt: string | null };
 
@@ -44,32 +42,6 @@ function TzRow({ value, onChange }: { value: string | null; onChange: (v: string
   );
 }
 
-/** Parse our own export or a Strong app CSV export into workouts. */
-function parseCsv(text: string) {
-  const res = Papa.parse<Record<string, string>>(text.trim(), { header: true, skipEmptyLines: true, delimiter: "" });
-  const map = new Map<string, { name: string; startedAt: Date; dur: number; notes: string; exercises: Map<string, WorkoutExercise> }>();
-  for (const r of res.data) {
-    const date = r["Date"]; const wname = r["Workout Name"]; const ename = r["Exercise Name"];
-    if (!date || !ename) continue;
-    const key = date + "|" + wname;
-    const started = new Date(date.includes("T") ? date : date.replace(" ", "T"));
-    if (isNaN(+started)) continue;
-    let durMin = 0; const d = r["Duration (min)"] ?? r["Duration"] ?? "";
-    if (/^\d+$/.test(d)) durMin = Number(d); else { const h = /(\d+)h/.exec(d), m = /(\d+)m/.exec(d); durMin = (h ? +h[1] * 60 : 0) + (m ? +m[1] : 0); }
-    const w = map.get(key) ?? { name: wname || "Workout", startedAt: started, dur: durMin, notes: r["Workout Notes"] ?? "", exercises: new Map() };
-    const ek = ename + "|" + (r["Superset"] ?? "");
-    const ex = w.exercises.get(ek) ?? { exerciseId: "", name: ename, notes: r["Notes"] || undefined, supersetId: r["Superset"] || null, sets: [] };
-    const lbCol = r["Weight (lb)"] ?? r["Weight (lbs)"];
-    const kg = r["Weight (kg)"] ?? r["Weight"];
-    const weight = lbCol ? Number(lbCol) * KG_PER_LB : kg ? Number(kg) : null;
-    const so = r["Set Order"] ?? ""; const typeCol = (r["Set Type"] ?? "") as SetType;
-    const type: SetType = ["warmup", "normal", "drop", "failure"].includes(typeCol) ? typeCol : so === "W" ? "warmup" : so === "D" ? "drop" : so === "F" ? "failure" : "normal";
-    ex.sets.push({ type, weight: weight && !isNaN(weight) ? Math.round(weight * 100) / 100 : null, reps: r["Reps"] ? Math.round(Number(r["Reps"])) : null, rpe: r["RPE"] ? Number(r["RPE"]) || null : null, done: true });
-    w.exercises.set(ek, ex); map.set(key, w);
-  }
-  return [...map.values()].map((w) => ({ name: w.name, notes: w.notes || null, startedAt: w.startedAt.toISOString(), endedAt: new Date(+w.startedAt + w.dur * 60000).toISOString(), exercises: [...w.exercises.values()] }));
-}
-
 export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { unit: "kg" | "lb"; timezoneOverride: string | null }; keys: Key[]; mcpUrl: string; email: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -78,7 +50,6 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
   const soundSilent = usePref("soundSilent"); const vol = useVolume(); const idleH = useIdleHours();
   const [newKey, setNewKey] = useState<string | null>(null);
   const [keyName, setKeyName] = useState("Grok Bot");
-  const fileRef = useRef<HTMLInputElement>(null);
   const save = async (p: Partial<typeof s>) => { setS((x) => ({ ...x, ...p })); await updateSettingsAction(p); router.refresh(); toast.success("Saved"); };
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
   return (
@@ -100,15 +71,9 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
 
       <section><p className="mono-label mb-2">Data</p>
         <div className="rounded-xl border bg-card">
-          <Row title="Export CSV" desc="All workouts, one row per set."><Button asChild variant="outline" size="sm"><a href="/api/export"><Download className="size-4" />Export</a></Button></Row>
-          <Row title="Import CSV" desc="Fortis or Strong app export.">
-            <input ref={fileRef} type="file" accept=".csv,text/csv" hidden onChange={async (e) => {
-              const f = e.target.files?.[0]; if (!f) return;
-              try { const ws = parseCsv(await f.text()); if (!ws.length) throw new Error("No rows"); toast.loading(`Importing ${ws.length} workouts…`, { id: "imp" }); const r = await importWorkoutsAction(ws); toast.success(`Imported ${r.imported} workouts`, { id: "imp" }); router.refresh(); }
-              catch (err) { toast.error(`Import failed: ${(err as Error).message}`, { id: "imp" }); } finally { e.target.value = ""; }
-            }} />
-            <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Upload className="size-4" />Import</Button>
-          </Row>
+          <Row title="Export CSV" desc="All workouts, one row per set (spreadsheets, other apps)."><Button asChild variant="outline" size="sm"><a href="/api/export"><Download className="size-4" />Export</a></Button></Row>
+          <ImportRow Row={Row} />
+          <BackupRows Row={Row} />
         </div>
       </section>
 

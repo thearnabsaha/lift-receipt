@@ -1,0 +1,5 @@
+"title","start_time","end_time","description","exercise_title","superset_id","exercise_notes","set_index","set_type","weight_kg","reps","distance_km","duration_seconds","rpe"
+"Upper","26 Oct 2026, 18:30","26 Oct 2026, 19:40","","Bench Press (Barbell)",,"",0,"warmup",40,10,,,
+"Upper","26 Oct 2026, 18:30","26 Oct 2026, 19:40","","Bench Press (Barbell)",,"",1,"normal",82.5,6,,,8.5
+"Upper","26 Oct 2026, 18:30","26 Oct 2026, 19:40","","Lat Pulldown (Cable)",0,"slow",0,"normal",60,12,,,
+"Upper","26 Oct 2026, 18:30","26 Oct 2026, 19:40","","Treadmill",,"",0,"normal",,,2.5,900,
