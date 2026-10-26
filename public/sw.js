@@ -1,5 +1,5 @@
 // Fortis service worker: offline app shell + static asset cache.
-const VERSION = "lr-v18";
+const VERSION = "lr-v19";
 const SHELL = ["/offline", "/workout", "/workout/active", "/dashboard", "/history", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/icon.svg", "/sounds/click.wav", "/sounds/chime.wav"];
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => Promise.allSettled(SHELL.map((u) => c.add(new Request(u, { credentials: "include" }))))).then(() => { if (!self.registration.active) return self.skipWaiting(); }));
