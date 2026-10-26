@@ -7,7 +7,7 @@ import { toDisplay } from "@/lib/calc";
 export const metadata = { title: "Weekly summary" };
 type S = Awaited<ReturnType<typeof getWeeklySummary>>;
 
-const day = (iso: string, off = 0) => new Date(+new Date(iso) + off).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: "Asia/Kolkata" });
+const day = (iso: string, tz: string, off = 0) => new Date(+new Date(iso) + off).toLocaleDateString("en-IN", { day: "numeric", month: "short", timeZone: tz });
 function Delta({ v }: { v: number | null }) {
   if (v == null) return <span className="text-muted-foreground">—</span>;
   return <span className={v > 0 ? "text-emerald-600 dark:text-emerald-400" : v < 0 ? "text-rose-600 dark:text-rose-400" : "text-muted-foreground"}>{v > 0 ? "▲" : v < 0 ? "▼" : "•"} {Math.abs(v)}%</span>;
@@ -23,7 +23,7 @@ function Week({ s, title, unit }: { s: S; title: string; unit: "kg" | "lb" }) {
   ];
   return (
     <article className="receipt rounded-xl border px-5 py-6 shadow-[0_1px_3px_#0000001a]">
-      <div className="flex items-baseline justify-between"><p className="mono-label">{title}</p><p className="mono-label">{day(s.weekStart)} – {day(s.weekEnd, -1)}</p></div>
+      <div className="flex items-baseline justify-between"><p className="mono-label">{title}</p><p className="mono-label">{day(s.weekStart, s.timezone)} – {day(s.weekEnd, s.timezone, -1)}</p></div>
       <p className="mt-3 text-sm leading-relaxed">{s.recap}</p>
       <div className="tear my-4" />
       <table className="w-full font-mono text-sm tabular-nums">
@@ -47,7 +47,7 @@ export default async function SummaryPage() {
   const unit = st.unit as "kg" | "lb";
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader label="Summary" title="Weekly summary" subtitle="Mon–Sun weeks, compared with the week before." />
+      <PageHeader label="Summary" title="Weekly summary" subtitle={`Mon–Sun weeks in ${now.timezone.replace(/_/g, " ")} time, compared with the week before.`} />
       <div className="grid gap-5 md:grid-cols-2">
         <Week s={now} title="This week · so far" unit={unit} />
         <Week s={last} title="Last week" unit={unit} />

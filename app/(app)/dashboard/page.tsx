@@ -1,7 +1,7 @@
 import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getSettings, getStats, getWeeklySummary, listWorkouts, personalRecords, progressSummary } from "@/lib/services";
+import { getSettings, getStats, getWeeklySummary, listWorkouts, personalRecords, progressSummary, userTz } from "@/lib/services";
 import { PageHeader, StatStrip } from "@/components/app-shell";
 import { toDisplay } from "@/lib/calc";
 import { WeeklyChart } from "./weekly-chart-lazy";
@@ -12,7 +12,7 @@ export const metadata = { title: "Profile" };
 
 export default async function Dashboard() {
   const u = await requireUser();
-  const [stats, weeks, s, recent, prs, wk] = await Promise.all([getStats(u.id), progressSummary(u.id, 12), getSettings(u.id), listWorkouts(u.id, { limit: 3 }), personalRecords(u.id), getWeeklySummary(u.id)]);
+  const [stats, weeks, s, recent, prs, wk, tz] = await Promise.all([getStats(u.id), progressSummary(u.id, 12), getSettings(u.id), listWorkouts(u.id, { limit: 3 }), personalRecords(u.id), getWeeklySummary(u.id), userTz(u.id)]);
   const unit = s.unit as "kg" | "lb";
   return (
     <div className="mx-auto max-w-4xl">
@@ -35,7 +35,7 @@ export default async function Dashboard() {
       <div className="mt-8 grid gap-8 md:grid-cols-2">
         <section>
           <div className="mb-3 flex items-center justify-between"><h2 className="text-xl font-semibold">Recent</h2><Link href="/history" className="text-sm text-muted-foreground hover:text-foreground">All →</Link></div>
-          {recent.length ? <div className="space-y-3">{recent.map((w) => <WorkoutCard key={w.id} w={w} unit={unit} />)}</div> : <p className="text-sm text-muted-foreground">No workouts yet.</p>}
+          {recent.length ? <div className="space-y-3">{recent.map((w) => <WorkoutCard key={w.id} w={w} unit={unit} tz={tz} />)}</div> : <p className="text-sm text-muted-foreground">No workouts yet.</p>}
         </section>
         <section>
           <h2 className="mb-3 text-xl font-semibold">Top lifts</h2>

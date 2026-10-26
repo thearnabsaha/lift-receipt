@@ -9,7 +9,8 @@ import { prsAgainst } from "./prs";
 import { bestOf, e1rm, round, workoutSetCount, workoutVolume, countsForStats, setVolume } from "./calc";
 import { muscleBalance, PERIODS, type Period } from "./muscles";
 import { BUILTIN_EXERCISES, builtinId } from "./data/exercises";
-import { mondayOf, summarizeWeek, DEFAULT_TZ_MIN } from "./weekly";
+import { mondayOf, summarizeWeek, offsetToTz } from "./weekly";
+import { addWeeks, defaultTz, isValidTz, localDateKey, mondayOfTz } from "./tz";
 import { suggestNext, type Session } from "./coach";
 
 const { exercise, routine, workout, measurement, settings, apiKey, favoriteExercise, routineShare } = schema;
@@ -52,13 +53,25 @@ export const routineInputSchema = z.object({
 /** Deduped per request: the app layout and the page both need it. */
 export const getSettings = cache(async (userId: string) => {
   const [s] = await db.select().from(settings).where(eq(settings.userId, userId));
-  return s ?? { userId, unit: "kg", restSec: 120, autoRest: true };
+  return s ?? { userId, unit: "kg", restSec: 120, autoRest: true, timezone: null as string | null, timezoneOverride: null as string | null };
 });
-export async function updateSettings(userId: string, patch: Partial<{ unit: string; restSec: number; autoRest: boolean }>) {
+export async function updateSettings(userId: string, patch: Partial<{ unit: string; restSec: number; autoRest: boolean; timezone: string | null; timezoneOverride: string | null }>) {
+  for (const k of ["timezone", "timezoneOverride"] as const) if (patch[k] != null && !isValidTz(patch[k])) throw new Error("Invalid time zone");
   const cur = await getSettings(userId);
   const next = { ...cur, ...patch, userId };
-  await db.insert(settings).values(next).onConflictDoUpdate({ target: settings.userId, set: { unit: next.unit, restSec: next.restSec, autoRest: next.autoRest } });
+  await db.insert(settings).values(next).onConflictDoUpdate({ target: settings.userId, set: { unit: next.unit, restSec: next.restSec, autoRest: next.autoRest, timezone: next.timezone, timezoneOverride: next.timezoneOverride } });
   return next;
+}
+/** The zone to bucket weeks/days in: manual override → given (device cookie / MCP param) → last detected device zone → default (Asia/Kolkata). */
+export async function userTz(userId: string, given?: string | null) {
+  const s = await getSettings(userId);
+  if (isValidTz(s.timezoneOverride)) return s.timezoneOverride;
+  if (isValidTz(given)) return given;
+  if (given === undefined) {
+    try { const { cookies } = await import("next/headers"); const c = decodeURIComponent((await cookies()).get("tz")?.value ?? ""); if (isValidTz(c)) return c; } catch { /* outside a request */ }
+  }
+  if (isValidTz(s.timezone)) return s.timezone;
+  return defaultTz();
 }
 
 // ---------- exercises ----------
@@ -227,15 +240,14 @@ export async function personalRecords(userId: string, exerciseId?: string) {
   return [...recs.values()].sort((a, b) => b.bestE1rm - a.bestE1rm);
 }
 
-const weekStart = (d: Date) => { const x = new Date(d); const day = (x.getUTCDay() + 6) % 7; x.setUTCHours(0, 0, 0, 0); x.setUTCDate(x.getUTCDate() - day); return x; };
-
-export async function progressSummary(userId: string, weeks = 12) {
-  const from = weekStart(new Date(Date.now() - (weeks - 1) * 7 * 864e5));
+export async function progressSummary(userId: string, weeks = 12, tzIn?: string | null) {
+  const tz = await userTz(userId, tzIn);
+  const from = addWeeks(mondayOfTz(new Date(), tz), -(weeks - 1), tz);
   const all = await listWorkouts(userId, { from, limit: 2000 });
   const buckets = new Map<string, { week: string; workouts: number; volumeKg: number; sets: number; durationMin: number }>();
-  for (let i = 0; i < weeks; i++) { const k = new Date(+from + i * 7 * 864e5).toISOString().slice(0, 10); buckets.set(k, { week: k, workouts: 0, volumeKg: 0, sets: 0, durationMin: 0 }); }
+  for (let i = 0; i < weeks; i++) { const k = localDateKey(addWeeks(from, i, tz), tz); buckets.set(k, { week: k, workouts: 0, volumeKg: 0, sets: 0, durationMin: 0 }); }
   for (const w of all) {
-    const b = buckets.get(weekStart(w.startedAt).toISOString().slice(0, 10)); if (!b) continue;
+    const b = buckets.get(localDateKey(mondayOfTz(w.startedAt, tz), tz)); if (!b) continue;
     b.workouts++; b.volumeKg = round(b.volumeKg + workoutVolume(w.exercises), 1); b.sets += workoutSetCount(w.exercises);
     if (w.endedAt) b.durationMin += Math.round((+w.endedAt - +w.startedAt) / 60000);
   }
@@ -247,7 +259,9 @@ export async function workoutCount(userId: string) {
   return Number(r?.n ?? 0);
 }
 
-export async function getStats(userId: string) {
+export async function getStats(userId: string, tzIn?: string | null) {
+  const tz = await userTz(userId, tzIn);
+  const weekStart = (d: Date) => mondayOfTz(d, tz);
   const all = await listWorkouts(userId, { limit: 5000 });
   const totalVolume = all.reduce((a, w) => a + workoutVolume(w.exercises), 0);
   const totalSets = all.reduce((a, w) => a + workoutSetCount(w.exercises), 0);
@@ -256,9 +270,9 @@ export async function getStats(userId: string) {
   for (const w of all) for (const e of w.exercises) { const f = freq.get(e.exerciseId) ?? { name: e.name, count: 0 }; f.count++; freq.set(e.exerciseId, f); }
   // weekly streak: consecutive weeks (ending this or last week) with >= 1 workout
   const weeksSet = new Set(all.map((w) => weekStart(w.startedAt).getTime()));
-  let streak = 0; let cur = weekStart(new Date()).getTime();
-  if (!weeksSet.has(cur)) cur -= 7 * 864e5;
-  while (weeksSet.has(cur)) { streak++; cur -= 7 * 864e5; }
+  let streak = 0; let cur = weekStart(new Date());
+  if (!weeksSet.has(+cur)) cur = addWeeks(cur, -1, tz);
+  while (weeksSet.has(+cur)) { streak++; cur = addWeeks(cur, -1, tz); }
   const thisWeek = all.filter((w) => weekStart(w.startedAt).getTime() === weekStart(new Date()).getTime()).length;
   return {
     totalWorkouts: all.length, totalVolumeKg: Math.round(totalVolume), totalSets, totalHours: round(totalMin / 60, 1),
@@ -363,11 +377,11 @@ export async function sharedRoutineIds(userId: string) {
 /** Public, read-only view of a shared routine. No owner history or ids are exposed. */
 export async function getSharedRoutine(token: string) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
-  const [r] = await db.select({ name: routine.name, notes: routine.notes, exercises: routine.exercises, createdAt: routineShare.createdAt, owner: schema.user.name })
-    .from(routineShare).innerJoin(routine, eq(routine.id, routineShare.routineId)).innerJoin(schema.user, eq(schema.user.id, routineShare.userId))
+  const [r] = await db.select({ name: routine.name, notes: routine.notes, exercises: routine.exercises, createdAt: routineShare.createdAt, owner: schema.user.name, unit: settings.unit })
+    .from(routineShare).innerJoin(routine, eq(routine.id, routineShare.routineId)).innerJoin(schema.user, eq(schema.user.id, routineShare.userId)).leftJoin(settings, eq(settings.userId, routineShare.userId))
     .where(and(eq(routineShare.token, token), isNull(routineShare.revokedAt)));
   if (!r) return null;
-  return { name: r.name, notes: r.notes, sharedAt: r.createdAt, owner: r.owner?.split(" ")[0] || null,
+  return { name: r.name, notes: r.notes, sharedAt: r.createdAt, owner: r.owner?.split(" ")[0] || null, unit: (r.unit === "lb" ? "lb" : "kg") as "kg" | "lb",
     exercises: r.exercises.map((e) => ({ exerciseId: e.exerciseId, name: e.name, notes: e.notes, supersetId: e.supersetId ?? null, sets: e.sets.map((x) => ({ type: x.type, weight: x.weight, reps: x.reps, rpe: null, done: false })) })) };
 }
 /** Copy a shared routine into the user's routines (always a new routine; nothing is overwritten). */
@@ -380,14 +394,16 @@ export async function importSharedRoutine(userId: string, token: string) {
 }
 
 // ---------- weekly summary ----------
-export async function getWeeklySummary(userId: string, opts: { weekStart?: Date; tzOffsetMin?: number } = {}) {
-  const tz = opts.tzOffsetMin ?? DEFAULT_TZ_MIN;
-  const start = mondayOf(opts.weekStart ?? new Date(Date.now() - 7 * 864e5), tz);
-  const [all, lookup] = await Promise.all([
-    db.select().from(workout).where(and(eq(workout.userId, userId), lte(workout.startedAt, new Date(+start + 7 * 864e5)))).orderBy(asc(workout.startedAt)),
-    muscleLookup(userId),
+/** `timezone` (IANA) wins over the deprecated `tzOffsetMin`; otherwise the user's own zone (override → device → default). */
+export async function getWeeklySummary(userId: string, opts: { weekStart?: Date; timezone?: string | null; tzOffsetMin?: number } = {}) {
+  const tz = isValidTz(opts.timezone) ? opts.timezone : opts.tzOffsetMin != null ? offsetToTz(opts.tzOffsetMin) : await userTz(userId);
+  const thisMon = mondayOf(new Date(), tz);
+  const start = opts.weekStart ? mondayOf(opts.weekStart, tz) : addWeeks(thisMon, -1, tz);
+  const [all, lookup, st] = await Promise.all([
+    db.select().from(workout).where(and(eq(workout.userId, userId), lte(workout.startedAt, addWeeks(start, 1, tz)))).orderBy(asc(workout.startedAt)),
+    muscleLookup(userId), getSettings(userId),
   ]);
-  return summarizeWeek(all, start, (id) => lookup.get(id));
+  return summarizeWeek(all, start, (id) => lookup.get(id), new Date(), { tz, unit: st.unit === "lb" ? "lb" : "kg" });
 }
 
 // ---------- coaching ----------

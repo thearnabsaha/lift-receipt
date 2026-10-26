@@ -265,9 +265,9 @@ const handler = createMcpHandler(
 
     // ---------- weekly summary + coach ----------
     server.registerTool("get_weekly_summary", {
-      title: "Weekly summary", description: "Summary of one Mon–Sun week (default: last full week; pass any date inside a week, e.g. today, for 'this week so far'): sessions, volume (kg), working sets, minutes, new PRs, best lift (highest e1RM set), previous week and % change, most-trained and untrained muscles, and a plain-English `recap` line. Week boundaries use Asia/Calcutta unless tzOffsetMinutes is given.",
-      inputSchema: z.object({ weekStart: z.string().optional().describe("ISO date inside the wanted week"), tzOffsetMinutes: z.number().int().optional().describe("Minutes east of UTC, default 330") }),
-    }, async (a, ctx) => ok(await svc.getWeeklySummary(uid(ctx), { weekStart: a.weekStart ? new Date(a.weekStart) : undefined, tzOffsetMin: a.tzOffsetMinutes })));
+      title: "Weekly summary", description: "Summary of one Mon–Sun week (default: last full week; pass any date inside a week, e.g. today, for 'this week so far'): sessions, volume (kg), working sets, minutes, new PRs, best lift (highest e1RM set), previous week and % change, most-trained and untrained muscles, and a plain-English `recap` line. Volume in kg; `recap` uses the user’s unit. Week boundaries use the user’s time zone (Settings override, else device zone from their last app visit, else Asia/Kolkata) unless `timezone` is given.",
+      inputSchema: z.object({ weekStart: z.string().optional().describe("ISO date inside the wanted week"), timezone: z.string().optional().describe("IANA zone, e.g. Europe/Berlin; default: the user’s zone"), tzOffsetMinutes: z.number().int().optional().describe("Deprecated: fixed minutes east of UTC (use timezone)") }),
+    }, async (a, ctx) => ok(await svc.getWeeklySummary(uid(ctx), { weekStart: a.weekStart ? new Date(a.weekStart) : undefined, timezone: a.timezone, tzOffsetMin: a.tzOffsetMinutes })));
 
     server.registerTool("get_coaching_context", {
       title: "Coaching context", description: "Compact snapshot for coaching, in one call: unit, last workouts, 6-week volume trend, per-exercise session trend over 6 weeks (best set + e1RM, in the user's unit), 30-day muscle balance, top PRs, routines, latest body measurements, favourites. Call this first before planning or reviewing training.",

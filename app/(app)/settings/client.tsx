@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import Papa from "papaparse";
@@ -23,6 +23,25 @@ function Row({ title, desc, children }: { title: string; desc?: string; children
 }
 function Seg<T extends string>({ value, options, onChange }: { value: T; options: { v: T; l: string }[]; onChange: (v: T) => void }) {
   return <div className="flex rounded-full border p-0.5 text-sm">{options.map((o) => <button key={o.v} type="button" onClick={() => onChange(o.v)} className={`rounded-full px-3 py-1 ${value === o.v ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}>{o.l}</button>)}</div>;
+}
+
+function TzRow({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+  const [detected, setDetected] = useState("");
+  const [zones, setZones] = useState<string[]>([]);
+  useEffect(() => {
+    try { setDetected(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch {}
+    try { setZones((Intl as unknown as { supportedValuesOf: (k: string) => string[] }).supportedValuesOf("timeZone")); } catch {}
+  }, []);
+  const list = zones.length ? zones : [value, detected].filter(Boolean) as string[];
+  return (
+    <Row title="Time zone" desc="Weeks (Mon–Sun) and days follow this. Auto uses this device's zone, so it updates when you travel.">
+      <select aria-label="Time zone" value={value ?? ""} onChange={(e) => onChange(e.target.value || null)}
+        className="max-w-[11rem] truncate rounded-full border bg-background px-3 py-1 text-base sm:text-sm">
+        <option value="">Auto{detected ? ` (${detected})` : ""}</option>
+        {list.map((z) => <option key={z} value={z}>{z.replace(/_/g, " ")}</option>)}
+      </select>
+    </Row>
+  );
 }
 
 /** Parse our own export or a Strong app CSV export into workouts. */
@@ -51,7 +70,7 @@ function parseCsv(text: string) {
   return [...map.values()].map((w) => ({ name: w.name, notes: w.notes || null, startedAt: w.startedAt.toISOString(), endedAt: new Date(+w.startedAt + w.dur * 60000).toISOString(), exercises: [...w.exercises.values()] }));
 }
 
-export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { unit: "kg" | "lb" }; keys: Key[]; mcpUrl: string; email: string }) {
+export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { unit: "kg" | "lb"; timezoneOverride: string | null }; keys: Key[]; mcpUrl: string; email: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [s, setS] = useState(settings);
@@ -67,6 +86,7 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
       <section><p className="mono-label mb-2">General</p>
         <div className="rounded-xl border bg-card">
           <Row title="Units" desc="Weights are stored in kg and converted for display."><Seg value={s.unit} options={[{ v: "kg", l: "kg" }, { v: "lb", l: "lb" }]} onChange={(unit) => save({ unit })} /></Row>
+          <TzRow value={s.timezoneOverride} onChange={(timezoneOverride) => save({ timezoneOverride })} />
           <Row title="Theme"><Seg value={(theme ?? "system") as "light" | "dark" | "system"} options={[{ v: "light", l: "Light" }, { v: "dark", l: "Dark" }, { v: "system", l: "Auto" }]} onChange={setTheme} /></Row>
           <Row title="Show RPE column" desc="Rate of perceived exertion (1–10) in the workout logger. Saved on this device."><Switch checked={showRpe} onCheckedChange={(v) => setPref("showRpe", v)} /></Row>
           <Row title="Idle workout prompt" desc="Ask to finish, resume or discard after no activity."><Seg value={String(idleH)} options={[{ v: "2", l: "2h" }, { v: "3", l: "3h" }, { v: "4", l: "4h" }, { v: "6", l: "6h" }, { v: "0", l: "Off" }]} onChange={(v) => setIdleHours(Number(v))} /></Row>

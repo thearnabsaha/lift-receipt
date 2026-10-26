@@ -13,7 +13,7 @@ export default async function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl">
       <PageHeader label="Preferences" title="Settings" />
-      <SettingsClient email={u.email} settings={{ unit: s.unit as "kg" | "lb" }} mcpUrl={`${proto}://${host}/api/mcp`}
+      <SettingsClient email={u.email} settings={{ unit: s.unit as "kg" | "lb", timezoneOverride: s.timezoneOverride ?? null }} mcpUrl={`${proto}://${host}/api/mcp`}
         keys={keys.map((k) => ({ ...k, createdAt: k.createdAt.toISOString(), lastUsedAt: k.lastUsedAt?.toISOString() ?? null, revokedAt: k.revokedAt?.toISOString() ?? null }))} />
     </div>
   );

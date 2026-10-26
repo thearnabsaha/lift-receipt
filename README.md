@@ -11,7 +11,7 @@ Next.js 16 · React 19 · Tailwind v4 · shadcn/ui · Drizzle + Neon Postgres ·
 - **Favourite exercises** — star in the picker, library and detail page; favourites sort first and the picker has a ★ Favourites chip.
 - **Routines** — templates in folders; start in one tap.
 - **Share a routine** — routine menu → *Share* creates a public, noindex link `/share/r/<token>` (native share sheet or copy). Anyone can preview it; *Import into Fortis* signs them in/up and adds a copy to an "Imported" folder (never overwrites). *Stop sharing* revokes the link.
-- **Weekly summary** — `/summary` (card on Profile): last week and this week so far (Mon–Sun, IST by default via `WEEK_TZ_OFFSET_MIN`), sessions / volume / sets / time with % change, PRs, best lift, most-trained and untrained muscles, recap line.
+- **Weekly summary** — `/summary` (card on Profile): last week and this week so far (Mon–Sun, IST by default via `WEEK_TZ` (IANA, optional; legacy `WEEK_TZ_OFFSET_MIN`) — last-resort default zone, Asia/Kolkata. Each user's weeks follow their device zone (cookie `tz` + `settings.timezone`) or the Settings override. 
 - **AI coach via Grok Bot** — no in-app LLM; Grok Bot uses the coaching MCP tools and prompts below. See *Settings → Coach*.
 - **History** — list (grouped by month) and calendar views; receipt-style detail with PR badges; edit or delete.
 - **Progress** — per-exercise charts (best e1RM, max weight, volume), rep records; dashboard with weekly chart and streak.

@@ -130,6 +130,10 @@ export const settings = pgTable("settings", {
   unit: text("unit").notNull().default("kg"),
   restSec: integer("rest_sec").notNull().default(120),
   autoRest: boolean("auto_rest").notNull().default(true),
+  /** IANA zone auto-detected from the user's device on their last app visit. */
+  timezone: text("timezone"),
+  /** Manual IANA override set in Settings (null = auto). */
+  timezoneOverride: text("timezone_override"),
 });
 
 export const apiKey = pgTable(

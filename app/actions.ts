@@ -36,8 +36,14 @@ export async function createExerciseAction(d: { name: string; muscle: string; eq
 export async function deleteExerciseAction(id: string) {
   const u = await requireUser(); await svc.deleteExercise(u.id, id); return done();
 }
-export async function updateSettingsAction(p: { unit?: string }) {
+export async function updateSettingsAction(p: { unit?: string; timezoneOverride?: string | null }) {
   const u = await requireUser(); const s = await svc.updateSettings(u.id, p); done(); return s;
+}
+/** Called by the client when the device's IANA zone differs from what we stored (no revalidate: cheap + silent). */
+export async function syncTimezoneAction(tz: string) {
+  const u = await requireUser(); const cur = await svc.getSettings(u.id);
+  if (cur.timezone !== tz) await svc.updateSettings(u.id, { timezone: tz });
+  return { ok: true };
 }
 export async function logMeasurementAction(d: { kind: string; value: number; date?: string }) {
   const u = await requireUser(); await svc.logMeasurement(u.id, { kind: d.kind, value: d.value, date: d.date ? new Date(d.date) : undefined }); return done();

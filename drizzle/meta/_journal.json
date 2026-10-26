@@ -15,6 +15,13 @@
       "when": 1793033170205,
       "tag": "0001_favorites_shares",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793034117853,
+      "tag": "0002_user_timezone",
+      "breakpoints": true
     }
   ]
 }

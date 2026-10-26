@@ -3,13 +3,13 @@ import { Clock, Dumbbell } from "lucide-react";
 import type { workout } from "@/lib/db/schema";
 import { countsForStats, e1rm, toDisplay, workoutVolume } from "@/lib/calc";
 
-export function WorkoutCard({ w, unit }: { w: typeof workout.$inferSelect; unit: "kg" | "lb" }) {
+export function WorkoutCard({ w, unit, tz }: { w: typeof workout.$inferSelect; unit: "kg" | "lb"; tz?: string }) {
   const dur = w.endedAt ? Math.round((+w.endedAt - +w.startedAt) / 60000) : null;
   return (
     <Link href={`/history/${w.id}`} className="block rounded-xl border bg-card p-4 shadow-[0_1px_3px_#0000001a] transition hover:-translate-y-0.5 hover:bg-muted/30">
       <div className="flex items-baseline gap-2 pr-8">
         <p className="flex-1 truncate font-semibold">{w.name}</p>
-        <p className="mono-label">{w.startedAt.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" })}</p>
+        <p className="mono-label">{w.startedAt.toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short", timeZone: tz })}</p>
       </div>
       <div className="mt-1 flex gap-4 text-xs text-muted-foreground">
         {dur != null && <span className="flex items-center gap-1"><Clock className="size-3" />{dur} min</span>}

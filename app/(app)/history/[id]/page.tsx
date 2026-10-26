@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Pencil, Trophy } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { getSettings, getWorkout, workoutPRs } from "@/lib/services";
+import { getSettings, getWorkout, userTz, workoutPRs } from "@/lib/services";
 import { e1rm, toDisplay, workoutSetCount, workoutVolume, round } from "@/lib/calc";
 import { Button } from "@/components/ui/button";
 import { DeleteWorkout } from "./delete";
@@ -14,7 +14,7 @@ const PR_LABEL = { weight: "Weight", e1rm: "1RM", volume: "Volume", reps: "Reps"
 export default async function WorkoutDetail({ params }: PageProps<"/history/[id]">) {
   const { id } = await params;
   const u = await requireUser();
-  const [w, s] = await Promise.all([getWorkout(u.id, id), getSettings(u.id)]);
+  const [w, s, tz] = await Promise.all([getWorkout(u.id, id), getSettings(u.id), userTz(u.id)]);
   if (!w) notFound();
   const unit = s.unit as "kg" | "lb";
   const prs = await workoutPRs(u.id, w);
@@ -32,7 +32,7 @@ export default async function WorkoutDetail({ params }: PageProps<"/history/[id]
       <article className="receipt rounded-xl border px-5 py-8 shadow-[0_1px_3px_#0000001a] sm:px-8">
         <p className="mono-label text-center">Fortis · No. {w.id.slice(0, 8).toUpperCase()}</p>
         <h1 className="mt-2 text-center text-2xl font-semibold tracking-tight">{w.name}</h1>
-        <p className="mono-label mt-1 text-center">{w.startedAt.toLocaleString("en-US", { dateStyle: "full", timeStyle: "short" })}</p>
+        <p className="mono-label mt-1 text-center">{w.startedAt.toLocaleString("en-US", { dateStyle: "full", timeStyle: "short", timeZone: tz })}</p>
         {w.notes && <p className="mt-3 text-center text-sm text-muted-foreground">{w.notes}</p>}
         <div className="tear my-5" />
         <div className="space-y-5">
