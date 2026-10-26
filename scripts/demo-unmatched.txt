@@ -1,0 +1,93 @@
+# 92 of 171 built-in exercises have no reviewed Everkinetic demo (UI shows 'No demo yet')
+Incline Chest Press (Machine)
+Chest Fly (Machine)
+Low Cable Fly
+Incline Push Up
+Floor Press (Barbell)
+Deadlift (Trap Bar)
+Sumo Deadlift
+Rack Pull
+Bent Over Row (Barbell)
+Bent Over Row (Dumbbell)
+Pendlay Row
+Chest Supported Row (Dumbbell)
+Row (Machine)
+Single Arm Row (Dumbbell)
+Chin Up
+Pull Up (Assisted)
+Lat Pulldown (Cable)
+Face Pull
+Meadows Row
+Seal Row
+Overhead Press (Barbell)
+Overhead Press (Dumbbell)
+Seated Overhead Press (Dumbbell)
+Shoulder Press (Machine)
+Arnold Press
+Push Press
+Lateral Raise (Cable)
+Lateral Raise (Machine)
+Front Raise (Plate)
+Reverse Fly (Machine)
+Landmine Press
+Handstand Push Up
+Band Pull Apart
+Bayesian Curl
+Reverse Curl (EZ Bar)
+Overhead Triceps Extension (Cable)
+Wrist Curl (Barbell)
+Reverse Wrist Curl
+Farmer's Walk
+Dead Hang
+High Bar Squat
+Goblet Squat
+Bulgarian Split Squat
+Pistol Squat
+Air Squat
+Belt Squat
+Pendulum Squat
+Romanian Deadlift (Dumbbell)
+Stiff Leg Deadlift
+Nordic Hamstring Curl
+Glute Ham Raise
+Single Leg Romanian Deadlift
+Hip Thrust (Barbell)
+Hip Thrust (Machine)
+Cable Pull Through
+Cable Kickback
+Kettlebell Swing
+Single Leg Calf Raise
+Plank
+Cable Crunch
+Sit Up
+Hanging Leg Raise
+Hanging Knee Raise
+Russian Twist
+Pallof Press
+Dead Bug
+Mountain Climber
+Woodchopper (Cable)
+Hollow Hold
+Dragon Flag
+Power Clean
+Hang Clean
+Clean and Jerk
+Snatch
+Thruster (Barbell)
+Burpee
+Turkish Get Up
+Kettlebell Clean and Press
+Sled Push
+Battle Ropes
+Box Jump
+Muscle Up
+Running
+Treadmill
+Cycling
+Rowing (Machine)
+Elliptical
+Stair Climber
+Jump Rope
+Swimming
+Walking
+Assault Bike

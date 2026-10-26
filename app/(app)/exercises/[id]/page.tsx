@@ -7,6 +7,9 @@ import { StatStrip } from "@/components/app-shell";
 import { ExerciseCharts } from "./charts";
 import { DeleteExercise } from "./delete";
 import { FavoriteToggle } from "@/components/favorite-star";
+import { DemoBlock } from "@/components/exercise-demo";
+import demos from "@/lib/data/demos.json";
+import type { DemoIndex } from "@/lib/demos";
 
 export const metadata = { title: "Exercise" };
 
@@ -27,6 +30,12 @@ export default async function ExercisePage({ params }: PageProps<"/exercises/[id
         <FavoriteToggle id={ex.id} initial={favs.includes(ex.id)} />
         {ex.userId && <DeleteExercise id={ex.id} />}
       </div>
+      {(demos as DemoIndex)[ex.id] && (
+        <section className="mb-8" data-testid="exercise-demo">
+          <p className="mono-label mb-3">How to</p>
+          <DemoBlock demo={(demos as DemoIndex)[ex.id]} name={ex.name} />
+        </section>
+      )}
       {ex.instructions && <p className="mb-6 text-sm text-muted-foreground">{ex.instructions}</p>}
       <StatStrip items={[
         { label: "Max weight", value: rec ? d(rec.maxWeight) : "—", suffix: unit },

@@ -21,6 +21,7 @@ import { IdleDialog } from "@/components/idle-prompt";
 import { idleEndTime, idleMs, isIdle, IDLE_FINISH_FLAG } from "@/lib/idle";
 import { playSetDone } from "@/lib/sound";
 import { SwipeRow } from "@/components/swipe-row";
+import { ExerciseDemoSheet } from "@/components/exercise-demo";
 import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
 import { queueRoutineUpdate } from "@/lib/offline";
@@ -61,6 +62,8 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   const live = mode === "live";
   const showRpe = usePref("showRpe");
   const [replaceIdx, setReplaceIdx] = useState<number | null>(null);
+  const [demoFor, setDemoFor] = useState<{ id: string; name: string } | null>(null);
+  const [demoOpen, setDemoOpen] = useState(false);
   const [routinePrompt, setRoutinePrompt] = useState<RoutineDiff | null>(null);
   const [finish, setFinish] = useState<FinishSummary | null>(null);
   const unit = st.unit;
@@ -252,7 +255,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
               {ssFirst && <p className="mono-label mb-1 text-chart-1">Superset</p>}
               <div className="rounded-xl border bg-card p-3 shadow-[0_1px_3px_#0000001a]">
                 <div className="mb-2 flex items-center gap-2">
-                  <p className="min-w-0 flex-1 truncate font-semibold text-chart-1">{ex.name}</p>
+                  <button type="button" onClick={() => { setDemoFor({ id: ex.exerciseId, name: ex.name }); setDemoOpen(true); }} className="min-w-0 flex-1 truncate py-2 text-left font-semibold text-chart-1 underline-offset-4 active:opacity-70 hover:underline" aria-label={`How to do ${ex.name}`} data-testid="exercise-name">{ex.name}</button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="size-11" aria-label="Exercise options"><MoreHorizontal className="size-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -320,6 +323,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         })}
       </div>
 
+      {demoFor && <ExerciseDemoSheet open={demoOpen} onOpenChange={(o) => { setDemoOpen(o); if (!o) setTimeout(() => setDemoFor(null), 250); }} exerciseId={demoFor.id} name={demoFor.name} />}
       <ExercisePicker exercises={exercises} open={replaceIdx != null} onOpenChange={(o) => { if (!o) setReplaceIdx(null); }} replace={replaceIdx != null ? st.exercises[replaceIdx]?.name ?? "" : undefined} onPick={(l, _s, keep) => replaceExercise(l, keep)} />
       <AlertDialog open={!!routinePrompt} onOpenChange={(o) => { if (!o) setRoutinePrompt(null); }}>
         <AlertDialogContent>
