@@ -26,6 +26,8 @@ import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
 import { queueRoutineUpdate } from "@/lib/offline";
 import { Replace } from "lucide-react";
+import { ProgressionSetting } from "@/components/progression-setting";
+import { dismissProgression, nextTimeList } from "@/lib/editor";
 import { uid, toEditorExercises, setFieldWithAutofill, nextSet, reflowAuto, toPayloadExercises, fillFromPrevious, dropLoneSupersets, setLabel, fromLocalInput, undoDelete, type ESet, type EditorState, type PrevMap } from "@/lib/editor";
 export { toEditorExercises, type EditorState, type PrevMap };
 
@@ -99,7 +101,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   };
   const replaceExercise = (list: ExerciseLite[], keep: boolean) => {
     const e = list[0]; const ei = replaceIdx; if (!e || ei == null) return;
-    upd((s) => { const x = s.exercises[ei]; if (!x) return; x.exerciseId = e.id; x.name = e.name;
+    upd((s) => { const x = s.exercises[ei]; if (!x) return; x.exerciseId = e.id; x.name = e.name; delete x.progression; delete x.prog;
       if (!keep) x.sets = x.sets.map((t) => ({ ...t, weight: "", reps: "", rpe: "", done: false, auto: {} })); });
     toast.success(`Replaced with ${e.name}`);
   };
@@ -158,7 +160,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       if (live) {
         localStorage.removeItem(ACTIVE_KEY);
         if (res.count) localStorage.setItem("lr-workout-count", String(res.count));
-        setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: res.count, prs: res.prs, prEx: res.prEx });
+        setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, next: nextTimeList(st, exs), count: res.count, prs: res.prs, prEx: res.prEx });
         return;
       }
       toast.success("Workout updated");
@@ -170,7 +172,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         const c = classifyStatus(r.status);
         if (c === "rejected") { toast.error(`Not saved: ${r.error || "the server rejected this workout"}. Your workout is still open, nothing was lost.`, { duration: 10000 }); return; }
         if (c === "sent") {
-          if (live) { localStorage.removeItem(ACTIVE_KEY); setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: null, prs: null }); return; }
+          if (live) { localStorage.removeItem(ACTIVE_KEY); setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, next: nextTimeList(st, exs), count: null, prs: null }); return; }
           toast.success("Workout updated"); router.push(`/history/${id}`); router.refresh(); return;
         }
       }
@@ -179,7 +181,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         localStorage.removeItem(ACTIVE_KEY);
         const c = Number(localStorage.getItem("lr-workout-count")) || 0;
         if (c) localStorage.setItem("lr-workout-count", String(c + 1));
-        setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, count: c ? c + 1 : null, prs: null, offline: true });
+        setFinish({ id, name: payload.name, startedAt: payload.startedAt, endedAt: payload.endedAt!, unit: st.unit, exercises: exs, next: nextTimeList(st, exs), count: c ? c + 1 : null, prs: null, offline: true });
       } else toast.error("Could not save");
     } finally { setSaving(false); endRef.current = null; setIdleBusy(false); }
   };
@@ -274,6 +276,17 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
+                {live && ex.prog && !ex.prog.dismissed && (
+                  <button type="button" data-testid="prog-chip" data-outcome={ex.prog.outcome} title={ex.prog.reason}
+                    aria-label={`${ex.prog.label}. ${ex.prog.reason} Tap to dismiss${ex.prog.undo ? " and restore the routine's values" : ""}.`}
+                    onClick={() => { const had = !!ex.prog?.undo; upd((s) => dismissProgression(s, ei)); if (had) toast("Suggestion dismissed · routine values restored"); }}
+                    className={cn("mb-2 flex min-h-9 max-w-full items-center gap-1.5 rounded-sm border border-dashed px-2.5 py-1 text-left font-mono text-[11px] uppercase tracking-wide active:translate-y-px",
+                      ex.prog.outcome === "increase" ? "border-success/50 text-success" : ex.prog.outcome === "deload" ? "border-amber-500/50 text-amber-700 dark:text-amber-400" : "text-muted-foreground")}>
+                    <span className="min-w-0 truncate">{ex.prog.label}</span><X className="size-3 shrink-0 opacity-60" aria-hidden />
+                  </button>
+                )}
+                {mode === "routine" && <ProgressionSetting name={ex.name} unit={unit} equipment={exercises.find((x) => x.id === ex.exerciseId)?.equipment} value={ex.progression}
+                  onChange={(v) => upd((s) => { if (v) s.exercises[ei].progression = v; else delete s.exercises[ei].progression; })} />}
                 {ex.showNotes && <Textarea value={ex.notes} onChange={(e) => upd((s) => { s.exercises[ei].notes = e.target.value; })} placeholder="Exercise note" rows={1} className="mb-2 min-h-11 resize-none text-sm" />}
                 <div className="space-y-1">
                 <div className={cn(cols, "h-6")}>

@@ -6,7 +6,7 @@ import { e1rm, toDisplay, workoutVolume, countsForStats } from "@/lib/calc";
 import type { WorkoutExercise } from "@/lib/db/schema";
 import { playFinish } from "@/lib/sound";
 
-export type FinishSummary = { id: string; name: string; startedAt: string; endedAt: string; unit: "kg" | "lb"; exercises: WorkoutExercise[]; count: number | null; prs: number | null; prEx?: string[]; offline?: boolean };
+export type FinishSummary = { id: string; name: string; startedAt: string; endedAt: string; unit: "kg" | "lb"; exercises: WorkoutExercise[]; count: number | null; prs: number | null; prEx?: string[]; offline?: boolean; next?: { name: string; label: string }[] };
 
 export const ordinal = (n: number) => { const s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); };
 export const shortDur = (ms: number) => { const m = Math.max(1, Math.round(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`; };
@@ -98,6 +98,16 @@ export function FinishScreen({ s, onClose }: { s: FinishSummary; onClose: () => 
                 <span className="mono-label self-center text-[10px]">Total</span>
                 <span>{exs.length} exercises · {sets} sets</span>
               </div>
+              {!!s.next?.length && (
+                <div className="mt-4 border-t border-dashed pt-3.5" data-testid="next-time">
+                  <p className="mono-label text-[10px]">Next time</p>
+                  <ul className="mt-2 space-y-1.5 text-sm">
+                    {s.next.map((n, i) => (
+                      <li key={i} className="flex items-baseline gap-3"><span className="min-w-0 flex-1 truncate">{n.name}</span><span className="shrink-0 text-right font-mono text-xs tabular-nums">{n.label.replace(/^Progress: /, "")}</span></li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <div aria-hidden className="mx-auto mt-5 h-7 w-3/4 opacity-70 [background:repeating-linear-gradient(90deg,currentColor_0_2px,transparent_2px_4px,currentColor_4px_5px,transparent_5px_8px,currentColor_8px_11px,transparent_11px_13px)]" />
               <p className="mono-label mt-2 text-center text-[9px]">Thank you · come again</p>
             </div>

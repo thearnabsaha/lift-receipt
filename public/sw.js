@@ -1,5 +1,5 @@
 // Fortis service worker: offline app shell + static asset cache.
-const VERSION = "lr-v25";
+const VERSION = "lr-v26";
 // Exercise demo drawings: own cache, survives app updates, capped (oldest evicted). Never precached.
 const DEMOS = "lr-demos-v1"; const DEMOS_MAX = 80;
 const SHELL = ["/offline", "/workout", "/workout/active", "/dashboard", "/history", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/icon.svg", "/sounds/click.wav", "/sounds/chime.wav"];

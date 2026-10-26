@@ -2,7 +2,7 @@ import { ActiveWorkoutBanner } from "@/components/idle-prompt";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { requireUser } from "@/lib/auth";
-import { lastRoutineId, listRoutines, sharedRoutineIds } from "@/lib/services";
+import { getSettings, lastRoutineId, listRoutines, routinePlans, sharedRoutineIds } from "@/lib/services";
 import { PageHeader, EmptyState } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/pwa";
@@ -12,7 +12,9 @@ export const metadata = { title: "Workout" };
 
 export default async function WorkoutPage() {
   const u = await requireUser();
-  const [routines, shared, lastId] = await Promise.all([listRoutines(u.id), sharedRoutineIds(u.id), lastRoutineId(u.id)]);
+  const [routines, shared, lastId, st] = await Promise.all([listRoutines(u.id), sharedRoutineIds(u.id), lastRoutineId(u.id), getSettings(u.id)]);
+  const planUnit = st.unit as "kg" | "lb";
+  const plans = await routinePlans(u.id, routines, planUnit);
   const folders = new Map<string, typeof routines>();
   for (const r of routines) { const k = r.folder || "My routines"; folders.set(k, [...(folders.get(k) ?? []), r]); }
   return (
@@ -20,7 +22,7 @@ export default async function WorkoutPage() {
       <InstallPrompt />
       <ActiveWorkoutBanner />
       <PageHeader label="Start" title="Start workout" subtitle="Empty session, or pick up a routine." />
-      <StartWorkout routines={routines.map((r) => ({ id: r.id, name: r.name, folder: r.folder, notes: r.notes, exercises: r.exercises }))} lastRoutineId={lastId} />
+      <StartWorkout routines={routines.map((r) => ({ id: r.id, name: r.name, folder: r.folder, notes: r.notes, exercises: r.exercises }))} lastRoutineId={lastId} plans={plans} planUnit={planUnit} />
       <div className="mt-10 mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Routines</h2>
         <Button asChild variant="outline" size="sm"><Link href="/routines/new"><Plus className="size-4" />Routine</Link></Button>
@@ -37,7 +39,7 @@ export default async function WorkoutPage() {
                   <RoutineMenu id={r.id} name={r.name} shared={shared.includes(r.id)} />
                 </div>
                 <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.exercises.map((e) => `${e.sets.length} × ${e.name}`).join(", ") || "No exercises"}</p>
-                <StartRoutineButton routine={{ id: r.id, name: r.name, folder: r.folder, notes: r.notes, exercises: r.exercises }} />
+                <StartRoutineButton routine={{ id: r.id, name: r.name, folder: r.folder, notes: r.notes, exercises: r.exercises }} plans={plans[r.id]} planUnit={planUnit} />
               </div>
             ))}
           </div>

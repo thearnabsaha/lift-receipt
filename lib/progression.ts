@@ -133,7 +133,7 @@ export function describeConfig(c: ProgressionConfig | null | undefined, equipmen
 
 /* ---------- applying to a routine ---------- */
 export type HistWorkout = { routineId: string | null; endedAt: Date | string | null; startedAt: Date | string; exercises: WorkoutExercise[] };
-export type Plan = { slot: number; exerciseId: string; name: string; suggestion: Suggestion };
+export type Plan = { slot: number; exerciseId: string; name: string; suggestion: Suggestion; history?: { sets: WorkoutSet[] }[] };
 
 /**
  * Sessions for a routine slot, newest first: the n-th occurrence of the exercise in finished workouts of that
@@ -155,8 +155,9 @@ export function planRoutine(r: { id: string | null; exercises: WorkoutExercise[]
     const occ = seen.get(e.exerciseId) ?? 0; seen.set(e.exerciseId, occ + 1);
     if (!normalizeConfig(e.progression)) return;
     const setCount = e.sets.filter((s) => s.type === "normal").length || undefined;
-    const s = suggest(e.progression, sessionsFor(workouts, r.id, e.exerciseId, occ), { unit: o.unit, equipment: o.equipment?.[e.exerciseId], setCount });
-    if (s) out.push({ slot, exerciseId: e.exerciseId, name: e.name, suggestion: s });
+    const history = sessionsFor(workouts, r.id, e.exerciseId, occ, 6);
+    const s = suggest(e.progression, history, { unit: o.unit, equipment: o.equipment?.[e.exerciseId], setCount });
+    if (s) out.push({ slot, exerciseId: e.exerciseId, name: e.name, suggestion: s, history });
   });
   return out;
 }

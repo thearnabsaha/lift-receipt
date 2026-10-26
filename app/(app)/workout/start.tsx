@@ -8,7 +8,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ACTIVE_KEY, toEditorExercises, type EditorState } from "@/components/workout-editor";
+import { ACTIVE_KEY, type EditorState } from "@/components/workout-editor";
+import { startFromRoutine } from "@/lib/editor";
+import type { Plan } from "@/lib/progression";
 import { useSettings } from "@/components/settings-context";
 import { deleteRoutineAction, shareRoutineAction, unshareRoutineAction } from "@/app/actions";
 import type { WorkoutExercise } from "@/lib/db/schema";
@@ -22,19 +24,21 @@ function greeting() {
   return h < 12 ? "Morning Workout" : h < 17 ? "Afternoon Workout" : "Evening Workout";
 }
 
+type R = { id: string; name: string; folder?: string | null; notes: string | null; exercises: WorkoutExercise[] };
 function useStart() {
   const router = useRouter(); const { unit } = useSettings();
-  return (r?: { id: string; name: string; folder?: string | null; notes: string | null; exercises: WorkoutExercise[] }) => {
+  return (r?: R, plans?: Plan[], planUnit?: string) => {
     if (localStorage.getItem(ACTIVE_KEY) && !confirm("A workout is already in progress. Discard it and start a new one?")) return;
-    const st: EditorState = { name: r?.name ?? greeting(), notes: r?.notes ?? "", routineId: r?.id ?? null, folder: "", template: r ? { name: r.name, folder: r.folder ?? null, notes: r.notes, exercises: r.exercises } : undefined, startedAt: new Date().toISOString(), endedAt: null, unit, exercises: r ? toEditorExercises(r.exercises, unit, false) : [] };
+    // plans were computed server-side in the user's unit; ignore them if the unit was just changed on this device
+    const s0 = r ? startFromRoutine(r.exercises, planUnit === unit ? plans : undefined, unit) : null;
+    const st: EditorState = { name: r?.name ?? greeting(), notes: r?.notes ?? "", routineId: r?.id ?? null, folder: "", template: r && s0 ? { name: r.name, folder: r.folder ?? null, notes: r.notes, exercises: s0.template } : undefined, startedAt: new Date().toISOString(), endedAt: null, unit, exercises: s0?.exercises ?? [] };
     localStorage.setItem(ACTIVE_KEY, JSON.stringify(st));
     router.push("/workout/active");
   };
 }
 
-type R = { id: string; name: string; folder?: string | null; notes: string | null; exercises: WorkoutExercise[] };
 /** Deep links (Home Screen web clips, iOS Shortcuts, manifest shortcuts): /workout?start=1, /workout?routine=<id>, /workout?routine=last */
-export function StartWorkout({ routines = [], lastRoutineId = null }: { routines?: R[]; lastRoutineId?: string | null }) {
+export function StartWorkout({ routines = [], lastRoutineId = null, plans = {}, planUnit }: { routines?: R[]; lastRoutineId?: string | null; plans?: Record<string, Plan[]>; planUnit?: string }) {
   const start = useStart();
   const weekday = useWeekday();
   const router = useRouter();
@@ -46,7 +50,7 @@ export function StartWorkout({ routines = [], lastRoutineId = null }: { routines
     if (localStorage.getItem(ACTIVE_KEY)) { if (rid) toast("A workout is already in progress"); router.push("/workout/active"); return; }
     if (!rid) return start();
     const r = routines.find((x) => x.id === (rid === "last" ? lastRoutineId : rid));
-    if (r) start(r);
+    if (r) start(r, plans[r.id], planUnit);
     else toast.error(rid === "last" ? "No routine used yet. Pick one below." : "That routine no longer exists. Pick one below.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -59,9 +63,9 @@ export function StartWorkout({ routines = [], lastRoutineId = null }: { routines
   );
 }
 
-export function StartRoutineButton({ routine }: { routine: { id: string; name: string; folder?: string | null; notes: string | null; exercises: WorkoutExercise[] } }) {
+export function StartRoutineButton({ routine, plans, planUnit }: { routine: R; plans?: Plan[]; planUnit?: string }) {
   const start = useStart();
-  return <Button size="sm" variant="secondary" className="mt-3 w-full" onClick={() => start(routine)}><Play className="size-4" />Start routine</Button>;
+  return <Button size="sm" variant="secondary" className="mt-3 w-full" onClick={() => start(routine, plans, planUnit)}><Play className="size-4" />Start routine</Button>;
 }
 
 export function RoutineMenu({ id, name, shared = false }: { id: string; name?: string; shared?: boolean }) {

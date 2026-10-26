@@ -128,3 +128,28 @@ test("nextTime uses the session just finished", () => {
   assert.equal(nextTime(D, S(60, 12, 12), [], kg)!.weightKg, 62.5);
   assert.equal(nextTime(D, [], [], kg), null);
 });
+
+import { startFromRoutine, dismissProgression, nextTimeList, toPayloadExercises, toEditorExercises } from "../lib/editor";
+import { diffRoutine } from "../lib/routine-diff";
+test("start: pre-fill linked as auto, template = suggestion (no false 'Update routine?'), dismiss restores", () => {
+  const tmpl = [ex("sq", S(60, 8, 8, 8).map((s) => ({ ...s, done: false })), D)];
+  const plans = planRoutine({ id: "r1", exercises: tmpl }, [wk("r1", 1, [ex("sq", S(60, 12, 12, 12))])], { unit: "kg" });
+  const { exercises, template } = startFromRoutine(tmpl, plans, "kg");
+  assert.deepEqual(exercises[0].sets.map((s) => [s.weight, s.reps]), [["62.5", "8"], ["62.5", "8"], ["62.5", "8"]]);
+  assert.equal(exercises[0].sets[1].auto?.weight, true);
+  assert.equal(exercises[0].prog?.label, "Progress: +2.5 kg → 62.5 × 8");
+  const st: any = { unit: "kg", exercises, template: { name: "R", folder: null, notes: null, exercises: template } };
+  assert.equal(diffRoutine(st.template.exercises, toPayloadExercises(st, false)).changed, false);
+  st.exercises[0].sets[0].done = true;
+  dismissProgression(st, 0);
+  assert.deepEqual(st.exercises[0].sets.map((s: any) => s.weight), ["62.5", "60", "60"]); // done set kept
+  assert.equal(st.template.exercises[0].sets[1].weight, 60);
+  assert.equal(st.exercises[0].prog.dismissed, true);
+  assert.equal(toPayloadExercises(st, false)[0].progression?.mode, "double");
+});
+test("start without plans = plain routine; nextTimeList", () => {
+  const tmpl = [ex("sq", S(60, 8).map((s) => ({ ...s, done: false })))];
+  assert.equal(startFromRoutine(tmpl, undefined, "kg").exercises[0].prog, undefined);
+  const st: any = { unit: "kg", exercises: toEditorExercises([ex("sq", S(60, 12, 12), D)], "kg", false) };
+  assert.deepEqual(nextTimeList(st, [ex("sq", S(60, 12, 12))]), [{ name: "sq", label: "Progress: +2.5 kg → 62.5 × 8" }]);
+});
