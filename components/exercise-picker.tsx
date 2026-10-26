@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MUSCLES, EQUIPMENT } from "@/lib/data/exercises";
 import { createExerciseAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
+import { FavoriteStar, useFavoriteSet } from "@/components/favorite-star";
 
-export type ExerciseLite = { id: string; name: string; muscle: string; equipment: string; userId?: string | null };
+export type ExerciseLite = { id: string; name: string; muscle: string; equipment: string; userId?: string | null; fav?: boolean };
 
 export function ExerciseFilters({ q, setQ, muscle, setMuscle, equipment, setEquipment }: {
   q: string; setQ: (s: string) => void; muscle: string; setMuscle: (s: string) => void; equipment: string; setEquipment: (s: string) => void;
@@ -35,12 +36,13 @@ export function ExerciseFilters({ q, setQ, muscle, setMuscle, equipment, setEqui
   );
 }
 
-export function useExerciseFilter(list: ExerciseLite[]) {
+export function useExerciseFilter(list: ExerciseLite[], isFav?: (id: string) => boolean, favOnly = false) {
   const [q, setQ] = useState(""); const [muscle, setMuscle] = useState("all"); const [equipment, setEquipment] = useState("all");
   const filtered = useMemo(() => {
     const ql = q.toLowerCase().trim();
-    return list.filter((e) => (!ql || e.name.toLowerCase().includes(ql)) && (muscle === "all" || e.muscle === muscle) && (equipment === "all" || e.equipment === equipment));
-  }, [list, q, muscle, equipment]);
+    const r = list.filter((e) => (!ql || e.name.toLowerCase().includes(ql)) && (muscle === "all" || e.muscle === muscle) && (equipment === "all" || e.equipment === equipment) && (!favOnly || isFav?.(e.id)));
+    return isFav ? [...r.filter((e) => isFav(e.id)), ...r.filter((e) => !isFav(e.id))] : r;
+  }, [list, q, muscle, equipment, isFav, favOnly]);
   return { filtered, props: { q, setQ, muscle, setMuscle, equipment, setEquipment } };
 }
 
@@ -80,7 +82,9 @@ export function ExercisePicker({ exercises, onPick, trigger, open: openP, onOpen
   const [keep, setKeep] = useState(true);
   const [extra, setExtra] = useState<ExerciseLite[]>([]);
   const all = useMemo(() => [...extra, ...exercises], [extra, exercises]);
-  const { filtered, props } = useExerciseFilter(all);
+  const favs = useFavoriteSet(useMemo(() => exercises.filter((e) => e.fav).map((e) => e.id), [exercises]));
+  const [favOnly, setFavOnly] = useState(false);
+  const { filtered, props } = useExerciseFilter(all, favs.has, favOnly);
   const [sel, setSel] = useState<string[]>([]);
   const pick = (superset: boolean) => { onPick(sel.map((id) => all.find((e) => e.id === id)!), superset, keep); setSel([]); setOpen(false); };
   return (
@@ -89,19 +93,30 @@ export function ExercisePicker({ exercises, onPick, trigger, open: openP, onOpen
       <DialogContent className="flex max-h-[90dvh] flex-col gap-3 sm:max-w-lg">
         <DialogHeader><DialogTitle>{replace ? "Replace exercise" : "Add exercises"}</DialogTitle>{replace && <p className="mono-label text-[10px]">Replacing · {replace}</p>}</DialogHeader>
         <ExerciseFilters {...props} />
+        <div className="-mt-1 flex gap-2" role="group" aria-label="Filter">
+          {([["All", false], ["Favourites", true]] as const).map(([l, v]) => (
+            <button key={l} type="button" onClick={() => setFavOnly(v)} aria-pressed={favOnly === v}
+              className={cn("h-8 rounded-full border px-3 font-mono text-[11px] uppercase tracking-wider", favOnly === v ? "border-foreground bg-foreground text-background" : "text-muted-foreground")}>
+              {v && "★ "}{l}
+            </button>
+          ))}
+        </div>
         <div className="-mx-2 min-h-0 flex-1 overflow-y-auto">
           {filtered.slice(0, 300).map((e) => {
             const on = sel.includes(e.id);
             return (
-              <button key={e.id} type="button" onClick={() => setSel((s) => on ? s.filter((x) => x !== e.id) : replace ? [e.id] : [...s, e.id])}
-                className={cn("flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted/60", on && "bg-muted")}>
-                <span className="flex size-8 items-center justify-center rounded-lg border bg-card font-mono text-xs">{e.name[0]}</span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{e.name}</span><span className="mono-label text-[10px]">{e.muscle} · {e.equipment}</span></span>
-                {on && <Check className="size-4" />}
-              </button>
+              <div key={e.id} className={cn("flex items-center rounded-lg hover:bg-muted/60", on && "bg-muted")}>
+                <button type="button" onClick={() => setSel((s) => on ? s.filter((x) => x !== e.id) : replace ? [e.id] : [...s, e.id])}
+                  className="flex min-w-0 flex-1 items-center gap-3 px-2 py-2.5 text-left">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-card font-mono text-xs">{e.name[0]}</span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{e.name}</span><span className="mono-label text-[10px]">{e.muscle} · {e.equipment}</span></span>
+                  {on && <Check className="size-4" />}
+                </button>
+                <FavoriteStar id={e.id} fav={favs.has(e.id)} onToggle={() => favs.toggle(e.id)} className="mr-1" />
+              </div>
             );
           })}
-          {!filtered.length && <p className="py-6 text-center text-sm text-muted-foreground">No match.</p>}
+          {!filtered.length && <p className="py-6 text-center text-sm text-muted-foreground">{favOnly ? "No favourites yet. Tap ★ on an exercise." : "No match."}</p>}
         </div>
         <div className="flex flex-wrap gap-2 border-t pt-3">
           <CreateExerciseDialog defaultName={props.q} onCreated={(e) => { setExtra((x) => [e, ...x]); setSel((s) => replace ? [e.id] : [...s, e.id]); }}

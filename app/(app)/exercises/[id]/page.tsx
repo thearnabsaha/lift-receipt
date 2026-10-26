@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
-import { exerciseHistory, getExercise, getSettings, personalRecords } from "@/lib/services";
+import { favoriteIds, exerciseHistory, getExercise, getSettings, personalRecords } from "@/lib/services";
 import { toDisplay, round } from "@/lib/calc";
 import { StatStrip } from "@/components/app-shell";
 import { ExerciseCharts } from "./charts";
 import { DeleteExercise } from "./delete";
+import { FavoriteToggle } from "@/components/favorite-star";
 
 export const metadata = { title: "Exercise" };
 
@@ -14,7 +15,7 @@ export default async function ExercisePage({ params }: PageProps<"/exercises/[id
   const u = await requireUser();
   const ex = await getExercise(u.id, id);
   if (!ex) notFound();
-  const [hist, [rec], s] = await Promise.all([exerciseHistory(u.id, id), personalRecords(u.id, id), getSettings(u.id)]);
+  const [hist, [rec], s, favs] = await Promise.all([exerciseHistory(u.id, id), personalRecords(u.id, id), getSettings(u.id), favoriteIds(u.id)]);
   const unit = s.unit as "kg" | "lb";
   const d = (v: number) => toDisplay(v, unit)!;
   return (
@@ -22,6 +23,7 @@ export default async function ExercisePage({ params }: PageProps<"/exercises/[id
       <Link href="/exercises" className="text-sm text-muted-foreground hover:text-foreground">← Exercises</Link>
       <div className="mt-3 mb-6 flex items-start gap-2">
         <div className="flex-1"><p className="mono-label">{ex.muscle} · {ex.equipment}</p><h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{ex.name}</h1></div>
+        <FavoriteToggle id={ex.id} initial={favs.includes(ex.id)} />
         {ex.userId && <DeleteExercise id={ex.id} />}
       </div>
       {ex.instructions && <p className="mb-6 text-sm text-muted-foreground">{ex.instructions}</p>}

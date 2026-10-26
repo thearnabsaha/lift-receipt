@@ -8,6 +8,13 @@
       "when": 1792951603847,
       "tag": "0000_unknown_mephistopheles",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793033170205,
+      "tag": "0001_favorites_shares",
+      "breakpoints": true
     }
   ]
 }

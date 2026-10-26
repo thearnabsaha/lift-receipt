@@ -146,3 +146,26 @@ export const apiKey = pgTable(
   },
   (t) => [uniqueIndex("api_key_hash_idx").on(t.hash)],
 );
+
+export const favoriteExercise = pgTable(
+  "favorite_exercise",
+  {
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    exerciseId: text("exercise_id").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("favorite_user_ex_idx").on(t.userId, t.exerciseId)],
+);
+
+/** Public read-only share link for a routine. Revoking sets revokedAt. */
+export const routineShare = pgTable(
+  "routine_share",
+  {
+    token: text("token").primaryKey(),
+    routineId: text("routine_id").notNull().references(() => routine.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (t) => [index("routine_share_routine_idx").on(t.routineId)],
+);

@@ -58,3 +58,15 @@ export async function importWorkoutsAction(list: Parameters<typeof svc.saveWorko
   done();
   return { imported: n };
 }
+export async function setFavoriteAction(exerciseId: string, fav: boolean) {
+  const u = await requireUser(); return svc.setFavorite(u.id, exerciseId, fav);
+}
+export async function shareRoutineAction(routineId: string) {
+  const u = await requireUser(); const s = await svc.shareRoutine(u.id, routineId); done(); return { token: s.token };
+}
+export async function unshareRoutineAction(routineId: string) {
+  const u = await requireUser(); await svc.unshareRoutine(u.id, routineId); return done();
+}
+export async function importSharedRoutineAction(token: string) {
+  const u = await requireUser(); const r = await svc.importSharedRoutine(u.id, token); done(); return { id: r.id, name: r.name };
+}

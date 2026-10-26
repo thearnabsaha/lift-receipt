@@ -9,8 +9,10 @@ import { prsAgainst } from "./prs";
 import { bestOf, e1rm, round, workoutSetCount, workoutVolume, countsForStats, setVolume } from "./calc";
 import { muscleBalance, PERIODS, type Period } from "./muscles";
 import { BUILTIN_EXERCISES, builtinId } from "./data/exercises";
+import { mondayOf, summarizeWeek, DEFAULT_TZ_MIN } from "./weekly";
+import { suggestNext, type Session } from "./coach";
 
-const { exercise, routine, workout, measurement, settings, apiKey } = schema;
+const { exercise, routine, workout, measurement, settings, apiKey, favoriteExercise, routineShare } = schema;
 const id = () => randomUUID();
 
 // ---------- zod shapes (shared by UI actions + MCP) ----------
@@ -316,8 +318,142 @@ export async function lastPerformance(userId: string) {
 }
 
 export async function exerciseLite(userId: string) {
-  return (await listExercises(userId)).map((e) => ({ id: e.id, name: e.name, muscle: e.muscle, equipment: e.equipment, userId: e.userId }));
+  const [list, favs] = await Promise.all([listExercises(userId), favoriteIds(userId)]);
+  const f = new Set(favs);
+  return list.map((e) => ({ id: e.id, name: e.name, muscle: e.muscle, equipment: e.equipment, userId: e.userId, fav: f.has(e.id) }));
 }
+
+// ---------- favourites ----------
+export async function favoriteIds(userId: string) {
+  return (await db.select({ id: favoriteExercise.exerciseId }).from(favoriteExercise).where(eq(favoriteExercise.userId, userId))).map((r) => r.id);
+}
+export async function setFavorite(userId: string, exerciseId: string, fav: boolean) {
+  if (fav) {
+    if (!(await getExercise(userId, exerciseId))) throw new Error("Exercise not found");
+    await db.insert(favoriteExercise).values({ userId, exerciseId }).onConflictDoNothing();
+  } else await db.delete(favoriteExercise).where(and(eq(favoriteExercise.userId, userId), eq(favoriteExercise.exerciseId, exerciseId)));
+  return { exerciseId, favorite: fav };
+}
+export async function listFavorites(userId: string) {
+  const ids = new Set(await favoriteIds(userId));
+  return (await listExercises(userId)).filter((e) => ids.has(e.id)).map((e) => ({ id: e.id, name: e.name, muscle: e.muscle, equipment: e.equipment }));
+}
+
+// ---------- routine sharing ----------
+export async function getShareFor(userId: string, routineId: string) {
+  const [r] = await db.select().from(routineShare).where(and(eq(routineShare.routineId, routineId), eq(routineShare.userId, userId), isNull(routineShare.revokedAt))).limit(1);
+  return r ?? null;
+}
+/** Returns the active share token for a routine, creating one if needed. */
+export async function shareRoutine(userId: string, routineId: string) {
+  if (!(await getRoutine(userId, routineId))) throw new Error("Routine not found");
+  const cur = await getShareFor(userId, routineId);
+  if (cur) return cur;
+  const row = { token: randomBytes(18).toString("base64url"), routineId, userId, createdAt: new Date(), revokedAt: null };
+  await db.insert(routineShare).values(row);
+  return row;
+}
+export async function unshareRoutine(userId: string, routineId: string) {
+  const r = await db.update(routineShare).set({ revokedAt: new Date() }).where(and(eq(routineShare.routineId, routineId), eq(routineShare.userId, userId), isNull(routineShare.revokedAt))).returning({ token: routineShare.token });
+  return r.length;
+}
+export async function sharedRoutineIds(userId: string) {
+  return (await db.select({ id: routineShare.routineId }).from(routineShare).where(and(eq(routineShare.userId, userId), isNull(routineShare.revokedAt)))).map((r) => r.id);
+}
+/** Public, read-only view of a shared routine. No owner history or ids are exposed. */
+export async function getSharedRoutine(token: string) {
+  if (!/^[A-Za-z0-9_-]{16,64}$/.test(token)) return null;
+  const [r] = await db.select({ name: routine.name, notes: routine.notes, exercises: routine.exercises, createdAt: routineShare.createdAt, owner: schema.user.name })
+    .from(routineShare).innerJoin(routine, eq(routine.id, routineShare.routineId)).innerJoin(schema.user, eq(schema.user.id, routineShare.userId))
+    .where(and(eq(routineShare.token, token), isNull(routineShare.revokedAt)));
+  if (!r) return null;
+  return { name: r.name, notes: r.notes, sharedAt: r.createdAt, owner: r.owner?.split(" ")[0] || null,
+    exercises: r.exercises.map((e) => ({ exerciseId: e.exerciseId, name: e.name, notes: e.notes, supersetId: e.supersetId ?? null, sets: e.sets.map((x) => ({ type: x.type, weight: x.weight, reps: x.reps, rpe: null, done: false })) })) };
+}
+/** Copy a shared routine into the user's routines (always a new routine; nothing is overwritten). */
+export async function importSharedRoutine(userId: string, token: string) {
+  const r = await getSharedRoutine(token);
+  if (!r) throw new Error("This share link is no longer active");
+  const names = new Set((await listRoutines(userId)).map((x) => x.name));
+  let name = r.name; for (let i = 2; names.has(name); i++) name = `${r.name} (${i})`;
+  return createRoutine(userId, { name, folder: "Imported", notes: r.notes, exercises: r.exercises });
+}
+
+// ---------- weekly summary ----------
+export async function getWeeklySummary(userId: string, opts: { weekStart?: Date; tzOffsetMin?: number } = {}) {
+  const tz = opts.tzOffsetMin ?? DEFAULT_TZ_MIN;
+  const start = mondayOf(opts.weekStart ?? new Date(Date.now() - 7 * 864e5), tz);
+  const [all, lookup] = await Promise.all([
+    db.select().from(workout).where(and(eq(workout.userId, userId), lte(workout.startedAt, new Date(+start + 7 * 864e5)))).orderBy(asc(workout.startedAt)),
+    muscleLookup(userId),
+  ]);
+  return summarizeWeek(all, start, (id) => lookup.get(id));
+}
+
+// ---------- coaching ----------
+async function sessionsByExercise(userId: string, from?: Date) {
+  const conds = [eq(workout.userId, userId)];
+  if (from) conds.push(gte(workout.startedAt, from));
+  const rows = await db.select().from(workout).where(and(...conds)).orderBy(asc(workout.startedAt));
+  const m = new Map<string, { name: string; sessions: Session[] }>();
+  for (const w of rows) for (const e of w.exercises) {
+    const x = m.get(e.exerciseId) ?? { name: e.name, sessions: [] };
+    x.sessions.push({ date: w.startedAt, sets: e.sets }); m.set(e.exerciseId, x);
+  }
+  return { rows, m };
+}
+const dispW = (kg: number | null, unit: "kg" | "lb") => (kg == null ? null : unit === "kg" ? round(kg, 2) : round(kg / 0.45359237, 1));
+
+export async function suggestProgression(userId: string, opts: { routineId?: string; repMin?: number; repMax?: number } = {}) {
+  const unit = (await getSettings(userId)).unit as "kg" | "lb";
+  const { m } = await sessionsByExercise(userId, new Date(Date.now() - 120 * 864e5));
+  let targets: { exerciseId: string; name: string; repMax?: number }[];
+  let routineName: string | null = null;
+  if (opts.routineId) {
+    const r = await getRoutine(userId, opts.routineId);
+    if (!r) throw new Error("Routine not found");
+    routineName = r.name;
+    targets = r.exercises.map((e) => ({ exerciseId: e.exerciseId, name: e.name, repMax: Math.max(0, ...e.sets.map((s) => s.reps ?? 0)) || undefined }));
+  } else {
+    targets = [...m.entries()].sort((a, b) => +b[1].sessions.at(-1)!.date - +a[1].sessions.at(-1)!.date).slice(0, 15).map(([id, v]) => ({ exerciseId: id, name: v.name }));
+  }
+  return {
+    unit, routine: routineName, rule: "Double progression: all working sets at the top weight reach the top of the rep range → add the smallest increment and restart at the bottom; otherwise same weight, +1 rep. No progress in 3+ sessions → deload ~10%.",
+    suggestions: targets.map((t) => {
+      const ss = m.get(t.exerciseId)?.sessions ?? [];
+      const s = suggestNext(t.name, ss, { unit, repMax: opts.repMax ?? t.repMax, repMin: opts.repMin });
+      return { exerciseId: t.exerciseId, exercise: t.name, action: s.action, nextWeight: dispW(s.weightKg, unit), nextReps: s.reps, sets: s.sets,
+        lastWeight: dispW(s.lastWeightKg, unit), lastReps: s.lastReps, stalled: s.stalled, sessionsLogged: ss.length, lastDone: ss.at(-1)?.date ?? null, reason: s.reason };
+    }),
+  };
+}
+
+export async function getCoachingContext(userId: string) {
+  const sixW = new Date(Date.now() - 42 * 864e5);
+  const [st, { rows, m }, balance, prs, routines, meas, favs, weekly] = await Promise.all([
+    getSettings(userId), sessionsByExercise(userId, sixW), getMuscleBalance(userId, "30d"), personalRecords(userId), listRoutines(userId), listMeasurements(userId), listFavorites(userId), progressSummary(userId, 6),
+  ]);
+  const unit = st.unit as "kg" | "lb";
+  const latest: Record<string, { value: number; date: string }> = {};
+  for (const x of meas) if (!latest[x.kind]) latest[x.kind] = { value: round(x.value, 2), date: x.date.toISOString().slice(0, 10) };
+  const exercises = [...m.entries()].map(([id, v]) => ({
+    exerciseId: id, name: v.name, sessions: v.sessions.length, lastDone: v.sessions.at(-1)!.date.toISOString().slice(0, 10),
+    trend: v.sessions.map((s) => { const b = bestOf(s.sets); const top = s.sets.filter(countsForStats).reduce<typeof s.sets[number] | null>((a, x) => (!a || e1rm(x.weight, x.reps) > e1rm(a.weight, a.reps) ? x : a), null);
+      return { date: s.date.toISOString().slice(0, 10), bestSet: top ? `${dispW(top.weight, unit) ?? "BW"}x${top.reps ?? 0}` : null, e1rm: dispW(round(b.bestE1rm, 1), unit) }; }),
+  })).sort((a, b) => b.sessions - a.sessions);
+  return {
+    unit, weightsIn: unit, generatedAt: new Date().toISOString(),
+    lastWorkouts: rows.slice(-5).reverse().map((w) => ({ name: w.name, date: w.startedAt.toISOString().slice(0, 10), sets: workoutSetCount(w.exercises) })),
+    weeklyVolume: weekly.map((w) => ({ week: w.week, workouts: w.workouts, sets: w.sets, volume: dispW(w.volumeKg, unit), minutes: w.durationMin })),
+    exercises,
+    muscleBalance30d: balance.muscles.map((x) => ({ muscle: x.name, sets: x.sets, lastTrained: x.lastTrained?.slice(0, 10) ?? null })),
+    personalRecords: prs.slice(0, 15).map((p) => ({ exercise: p.name, maxWeight: dispW(p.maxWeight, unit), bestE1rm: dispW(p.bestE1rm, unit), date: p.bestE1rmDate?.toISOString().slice(0, 10) ?? null })),
+    routines: routines.map((r) => ({ id: r.id, name: r.name, exercises: r.exercises.map((e) => `${e.name} ${e.sets.length}x${e.sets[0]?.reps ?? "?"}`) })),
+    bodyLatest: latest, bodyUnits: "bodyweight kg, bodyfat %, lengths cm",
+    favorites: favs.map((f) => f.name),
+  };
+}
+
 
 // ---------- muscle balance ----------
 /** exerciseId → muscle field, for built-ins (no query) plus the user's custom exercises. */
