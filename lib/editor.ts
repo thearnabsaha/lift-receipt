@@ -1,4 +1,4 @@
-import { toDisplay } from "@/lib/calc";
+import { toDisplay, toKg } from "@/lib/calc";
 import type { SetType, WorkoutExercise } from "@/lib/db/schema";
 
 export const uid = () => Math.random().toString(36).slice(2, 10);
@@ -76,3 +76,43 @@ export function reflowAuto(sets: ESet[], from: number): ESet[] {
   }
   return out;
 }
+
+/* ---------- payload / misc helpers (pure) ---------- */
+/** Parses a typed number; "", ".", "1.2.3", "-" etc. become null instead of NaN (NaN made the whole save fail). */
+export const parseNum = (v: string): number | null => { const t = v.trim().replace(",", "."); if (t === "") return null; const n = Number(t); return Number.isFinite(n) ? n : null; };
+/** RPE outside 1–10 is dropped (the server rejects it, which used to lose the whole workout). */
+export const parseRpe = (v: string): number | null => { const n = parseNum(v); return n != null && n >= 1 && n <= 10 ? n : null; };
+
+export function toPayloadExercises(st: Pick<EditorState, "exercises" | "unit">, onlyDone: boolean): WorkoutExercise[] {
+  return st.exercises.map((e) => ({
+    exerciseId: e.exerciseId, name: e.name, notes: e.notes || undefined, supersetId: e.supersetId, restSec: e.restSec,
+    sets: e.sets.filter((s) => !onlyDone || s.done).map((s) => {
+      const w = parseNum(s.weight), r = parseNum(s.reps);
+      return { type: s.type, weight: toKg(w, st.unit), reps: r == null ? null : Math.max(0, Math.round(r)), rpe: parseRpe(s.rpe), done: onlyDone ? true : s.done };
+    }),
+  })).filter((e) => !onlyDone || e.sets.length);
+}
+
+/** Tapping the grey "previous" value: fills like typing, so linked sets below follow. */
+export function fillFromPrevious(sets: ESet[], si: number, weight: string, reps: string): ESet[] {
+  return setFieldWithAutofill(setFieldWithAutofill(sets, si, "weight", weight), si, "reps", reps);
+}
+
+/** A superset group left with a single exercise (after remove / move) is no longer a superset. */
+export function dropLoneSupersets<T extends { supersetId: string | null }>(exs: T[]): T[] {
+  return exs.map((e, i) => {
+    if (!e.supersetId) return e;
+    const linked = exs[i - 1]?.supersetId === e.supersetId || exs[i + 1]?.supersetId === e.supersetId;
+    return linked ? e : { ...e, supersetId: null };
+  });
+}
+
+/** Set label as shown in the editor: W/D/F for special sets, otherwise the count of non-warm-up sets so far. */
+export function setLabel(sets: { type: SetType }[], si: number): string {
+  const t = sets[si]?.type;
+  if (t === "warmup") return "W"; if (t === "drop") return "D"; if (t === "failure") return "F";
+  return String(sets.slice(0, si + 1).filter((x) => x.type !== "warmup").length);
+}
+
+/** datetime-local value → ISO, or null when cleared / invalid (iOS "Clear" sends ""). */
+export function fromLocalInput(v: string): string | null { if (!v) return null; const d = new Date(v); return Number.isNaN(+d) ? null : d.toISOString(); }

@@ -11,8 +11,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { ExercisePicker, type ExerciseLite } from "@/components/exercise-picker";
 import { saveRoutineAction, saveWorkoutAction } from "@/app/actions";
 import { queueWorkout } from "@/lib/offline";
-import { formatDuration, toDisplay, toKg } from "@/lib/calc";
-import type { SetType, WorkoutExercise } from "@/lib/db/schema";
+import { formatDuration, toDisplay } from "@/lib/calc";
+import type { SetType } from "@/lib/db/schema";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Info } from "lucide-react";
@@ -25,23 +25,14 @@ import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
 import { queueRoutineUpdate } from "@/lib/offline";
 import { Replace } from "lucide-react";
-import { uid, toEditorExercises, setFieldWithAutofill, nextSet, reflowAuto, type ESet, type EditorState, type PrevMap } from "@/lib/editor";
+import { uid, toEditorExercises, setFieldWithAutofill, nextSet, reflowAuto, toPayloadExercises, fillFromPrevious, dropLoneSupersets, setLabel, fromLocalInput, type ESet, type EditorState, type PrevMap } from "@/lib/editor";
 export { toEditorExercises, type EditorState, type PrevMap };
 
 type Mode = "live" | "edit" | "routine";
 
 export const ACTIVE_KEY = "lr-active-workout";
 const blankSet = (): ESet => ({ type: "normal", weight: "", reps: "", rpe: "", done: false });
-const TYPE_LABEL: Record<SetType, string> = { warmup: "W", normal: "", drop: "D", failure: "F" };
 const TYPE_ORDER: SetType[] = ["normal", "warmup", "drop", "failure"];
-
-function toPayloadExercises(st: EditorState, onlyDone: boolean): WorkoutExercise[] {
-  const n = (v: string) => (v.trim() === "" ? null : Number(v));
-  return st.exercises.map((e) => ({
-    exerciseId: e.exerciseId, name: e.name, notes: e.notes || undefined, supersetId: e.supersetId, restSec: e.restSec,
-    sets: e.sets.filter((s) => !onlyDone || s.done).map((s) => ({ type: s.type, weight: toKg(n(s.weight), st.unit), reps: n(s.reps) == null ? null : Math.round(n(s.reps)!), rpe: n(s.rpe), done: onlyDone ? true : s.done })),
-  })).filter((e) => !onlyDone || e.sets.length);
-}
 
 function useWakeLock(on: boolean) {
   useEffect(() => {
@@ -223,7 +214,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       {mode === "edit" && (
         <div className="mb-2 grid grid-cols-2 gap-2">
           <label className="text-xs"><span className="mono-label">Start</span>
-            <Input type="datetime-local" value={toLocalInput(st.startedAt)} onChange={(e) => upd((s) => { const d = new Date(e.target.value); const dur = s.endedAt ? +new Date(s.endedAt) - +new Date(s.startedAt) : 0; s.startedAt = d.toISOString(); if (s.endedAt) s.endedAt = new Date(+d + dur).toISOString(); })} /></label>
+            <Input type="datetime-local" value={toLocalInput(st.startedAt)} onChange={(e) => { const iso = fromLocalInput(e.target.value); if (!iso) return; upd((s) => { const d = new Date(iso); const dur = s.endedAt ? +new Date(s.endedAt) - +new Date(s.startedAt) : 0; s.startedAt = d.toISOString(); if (s.endedAt) s.endedAt = new Date(+d + dur).toISOString(); }); }} /></label>
           <label className="text-xs"><span className="mono-label">Duration (min)</span>
             <Input type="number" inputMode="numeric" value={st.endedAt ? Math.round((+new Date(st.endedAt) - +new Date(st.startedAt)) / 60000) : ""} onChange={(e) => upd((s) => { s.endedAt = new Date(+new Date(s.startedAt) + Number(e.target.value || 0) * 60000).toISOString(); })} /></label>
         </div>
@@ -255,16 +246,16 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].showNotes = true; })}><StickyNote className="size-4" />Add note</DropdownMenuItem>
                       {ei < st.exercises.length - 1 && (
-                        inSS ? <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].supersetId = null; })}><Unlink className="size-4" />Remove from superset</DropdownMenuItem>
+                        inSS ? <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].supersetId = null; s.exercises = dropLoneSupersets(s.exercises); })}><Unlink className="size-4" />Remove from superset</DropdownMenuItem>
                           : <DropdownMenuItem onClick={() => upd((s) => { const id = s.exercises[ei + 1].supersetId ?? uid(); s.exercises[ei].supersetId = id; s.exercises[ei + 1].supersetId = id; })}><Link2 className="size-4" />Superset with next</DropdownMenuItem>
                       )}
-                      {ei === st.exercises.length - 1 && inSS && <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].supersetId = null; })}><Unlink className="size-4" />Remove from superset</DropdownMenuItem>}
+                      {ei === st.exercises.length - 1 && inSS && <DropdownMenuItem onClick={() => upd((s) => { s.exercises[ei].supersetId = null; s.exercises = dropLoneSupersets(s.exercises); })}><Unlink className="size-4" />Remove from superset</DropdownMenuItem>}
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem disabled={ei === 0} onClick={() => upd((s) => { const [x] = s.exercises.splice(ei, 1); s.exercises.splice(ei - 1, 0, x); })}><ChevronUp className="size-4" />Move up</DropdownMenuItem>
-                      <DropdownMenuItem disabled={ei === st.exercises.length - 1} onClick={() => upd((s) => { const [x] = s.exercises.splice(ei, 1); s.exercises.splice(ei + 1, 0, x); })}><ChevronDown className="size-4" />Move down</DropdownMenuItem>
+                      <DropdownMenuItem disabled={ei === 0} onClick={() => upd((s) => { const [x] = s.exercises.splice(ei, 1); s.exercises.splice(ei - 1, 0, x); s.exercises = dropLoneSupersets(s.exercises); })}><ChevronUp className="size-4" />Move up</DropdownMenuItem>
+                      <DropdownMenuItem disabled={ei === st.exercises.length - 1} onClick={() => upd((s) => { const [x] = s.exercises.splice(ei, 1); s.exercises.splice(ei + 1, 0, x); s.exercises = dropLoneSupersets(s.exercises); })}><ChevronDown className="size-4" />Move down</DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={() => setTimeout(() => setReplaceIdx(ei), 0)}><Replace className="size-4" />Replace exercise</DropdownMenuItem>
-                      <DropdownMenuItem variant="destructive" onClick={() => upd((s) => { s.exercises.splice(ei, 1); })}><Trash2 className="size-4" />Remove exercise</DropdownMenuItem>
+                      <DropdownMenuItem variant="destructive" onClick={() => upd((s) => { s.exercises.splice(ei, 1); s.exercises = dropLoneSupersets(s.exercises); })}><Trash2 className="size-4" />Remove exercise</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -277,13 +268,12 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                 </div>
                   {ex.sets.map((s, si) => {
                     const pv = p?.[si];
-                    const num = ex.sets.slice(0, si + 1).filter((x) => x.type !== "warmup").length;
-                    return (
+                                        return (
                       <SwipeRow key={`${ex.key}-${si}-${ex.sets.length}`} onDelete={() => deleteSet(ei, si)} className={cn(cols, s.done && "bg-success/10")}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button type="button" className={cn("h-11 rounded-md font-mono text-sm font-semibold", s.type === "warmup" && "text-amber-500", s.type === "drop" && "text-chart-1", s.type === "failure" && "text-destructive")}>
-                              {TYPE_LABEL[s.type] || num}
+                              {setLabel(ex.sets, si)}
                             </button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="start">
@@ -293,7 +283,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
                           </DropdownMenuContent>
                         </DropdownMenu>
                         <button type="button" className="h-11 truncate rounded-md font-mono text-xs text-muted-foreground" title="Tap to copy"
-                          onClick={() => pv && upd((x) => { const t = x.exercises[ei].sets[si]; t.weight = pv.weight == null ? "" : String(toDisplay(pv.weight, unit)); t.reps = pv.reps == null ? "" : String(pv.reps); t.auto = {}; })}>
+                          onClick={() => pv && upd((x) => { x.exercises[ei].sets = fillFromPrevious(x.exercises[ei].sets, si, pv.weight == null ? "" : String(toDisplay(pv.weight, unit)), pv.reps == null ? "" : String(pv.reps)); })}>
                           {pv ? `${pv.weight != null ? toDisplay(pv.weight, unit) : "BW"} × ${pv.reps ?? "-"}` : "—"}
                         </button>
                         <Input inputMode="decimal" enterKeyHint="next" aria-label="Weight" className="h-11 px-1 text-center tabular-nums" placeholder={pv?.weight != null ? String(toDisplay(pv.weight, unit)) : ""} value={s.weight} onChange={(e) => { const v = e.target.value.replace(",", "."); upd((x) => { x.exercises[ei].sets = setFieldWithAutofill(x.exercises[ei].sets, si, "weight", v); }); }} />

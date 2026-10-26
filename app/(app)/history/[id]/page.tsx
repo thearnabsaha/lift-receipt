@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { getSettings, getWorkout, userTz, workoutPRs } from "@/lib/services";
 import { e1rm, toDisplay, workoutSetCount, workoutVolume, round } from "@/lib/calc";
 import { Button } from "@/components/ui/button";
+import { setLabel } from "@/lib/editor";
 import { DeleteWorkout } from "./delete";
 
 export const metadata = { title: "Workout" };
@@ -46,7 +47,7 @@ export default async function WorkoutDetail({ params }: PageProps<"/history/[id]
               <div className="mt-1 space-y-0.5 font-mono text-sm">
                 {e.sets.map((st, si) => (
                   <div key={si} className="flex items-center gap-2">
-                    <span className="w-6 text-muted-foreground">{st.type === "warmup" ? "W" : st.type === "drop" ? "D" : st.type === "failure" ? "F" : si + 1}</span>
+                    <span className="w-6 text-muted-foreground">{setLabel(e.sets, si)}</span>
                     <span className="flex-1 tabular-nums">{st.weight != null ? `${toDisplay(st.weight, unit)} ${unit}` : "BW"} × {st.reps ?? "-"}{st.rpe ? ` @${st.rpe}` : ""}</span>
                     {prs[i][si]?.map((k) => <span key={k} className="inline-flex items-center gap-0.5 rounded-full bg-amber-400/15 px-1.5 text-[10px] uppercase text-amber-600 dark:text-amber-400"><Trophy className="size-2.5" />{PR_LABEL[k]}</span>)}
                     <span className="w-16 text-right text-xs text-muted-foreground tabular-nums">{st.weight && st.reps ? `${round(toDisplay(e1rm(st.weight, st.reps), unit)!, 0)}` : ""}</span>

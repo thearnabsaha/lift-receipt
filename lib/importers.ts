@@ -68,7 +68,7 @@ function strongLike(rows: Record<string, string>[], fortis: boolean): ParseResul
     const weight = lbCol != null && lbCol !== "" ? kg(num(lbCol), true) : kg(num(r["Weight (kg)"] ?? r["Weight"]), false);
     const reps = num(r["Reps"]);
     const so = r["Set Order"] ?? "";
-    const set: WorkoutSet = { type: fortis ? setType(r["Set Type"]) : setType(/^\d+$/.test(so) ? "" : so), weight: weight === 0 ? null : weight, reps: !reps ? null : Math.round(reps), rpe: num(r["RPE"]) || null, done: true };
+    const set: WorkoutSet = { type: fortis ? setType(r["Set Type"]) : setType(/^\d+$/.test(so) ? "" : so), weight: weight === 0 ? null : weight, reps: !reps ? null : Math.round(reps), rpe: ((n) => (n != null && n >= 1 && n <= 10 ? n : null))(num(r["RPE"])), done: true };
     if (isEmpty(set)) { skipped++; continue; }
     push(w, ename + "|" + (r["Superset"] ?? ""), ename, set, { notes: r["Notes"] || undefined, supersetId: r["Superset"] || null });
   }
