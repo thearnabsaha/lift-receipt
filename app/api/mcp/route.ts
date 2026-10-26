@@ -7,7 +7,7 @@ export const maxDuration = 60;
 const BASE = process.env.BETTER_AUTH_URL || "https://lift-receipt.vercel.app";
 const COACH = `You are the user's strength coach, using the Fortis MCP tools. Workflow:
 1. get_coaching_context first (unit, trends, balance, routines, body stats). Use the user's unit everywhere.
-2. Progression: suggest_progression (optionally per routine) gives rule-based targets (double progression; deload after 3 stalled sessions). Prefer these numbers; adjust only with a stated reason.
+2. Progression: if a routine exercise has a progression setting (Double/Linear, set in the app or via set_exercise_progression), get_progression_suggestions returns exactly what the app will pre-fill next session; use it. For exercises without a setting, suggest_progression gives generic double-progression targets. Prefer these numbers; adjust only with a stated reason.
 3. Weekly reviews: get_weekly_summary (default last full week; pass today's date for this week so far).
 4. Balance: aim for ~10-20 working sets per major muscle per week; flag muscles with 0 sets in muscle balance.
 5. Never change data without asking. To save a plan use create_routine / update_routine; to log use log_workout.
@@ -28,11 +28,22 @@ const setIn = z.object({
   type: z.enum(["warmup", "normal", "drop", "failure"]).optional().describe("Set type, default normal"),
   done: z.boolean().optional().describe("Completed? default true"),
 });
+const progIn = z.object({
+  mode: z.enum(["off", "double", "linear"]).describe("off | double (rep range; add weight when every working set hits repMax) | linear (add weight when every working set hits reps)"),
+  repMin: z.number().int().min(1).max(50).optional().describe("Double: bottom of rep range (default 8)"),
+  repMax: z.number().int().min(1).max(50).optional().describe("Double: top of rep range (default 12)"),
+  reps: z.number().int().min(1).max(50).optional().describe("Linear: target reps per working set (default 5)"),
+  increment: z.number().positive().max(50).optional().describe("Weight added on success, in `unit`. Default by equipment: barbell 2.5 kg/5 lb, dumbbell 2 kg/5 lb, machine/cable 2.5 kg/5 lb"),
+  unit: z.enum(["kg", "lb"]).optional().describe("Unit of increment; default the user's unit"),
+  deloadAfter: z.number().int().min(0).max(10).optional().describe("Linear: deload after N consecutive misses at the same weight (default 2, 0 = never)"),
+  deloadPct: z.number().min(1).max(50).optional().describe("Linear: deload size % (default 10)"),
+});
 const exIn = z.object({
   exercise: z.string().describe("Exercise id (from list_exercises) or exact/approximate name, e.g. 'Bench Press (Barbell)'. Unknown names create a custom exercise."),
   notes: z.string().optional(),
   supersetId: z.string().optional().describe("Exercises sharing the same supersetId form a superset"),
   sets: z.array(setIn).default([]),
+  progression: progIn.optional().describe("Optional auto-progression for this routine exercise. Omit to keep an existing setting on update_routine."),
 });
 const unitIn = z.enum(["kg", "lb"]).optional().describe("Unit of weights in this call. Defaults to the user's setting.");
 
@@ -46,6 +57,7 @@ async function toExercises(userId: string, exs: z.infer<typeof exIn>[], unit: "k
     const ex = await svc.resolveExercise(userId, e.exercise.startsWith("bi_") || /^[0-9a-f-]{36}$/.test(e.exercise) ? { exerciseId: e.exercise } : { name: e.exercise });
     out.push({
       exerciseId: ex.id, name: ex.name, notes: e.notes, supersetId: e.supersetId ?? null,
+      ...(e.progression && e.progression.mode !== "off" ? { progression: { unit, ...e.progression } } : {}),
       sets: e.sets.map((s) => ({ type: s.type ?? "normal", weight: conv(s.weight, unit), reps: s.reps ?? null, rpe: s.rpe ?? null, done: s.done ?? true })),
     });
   }
@@ -101,7 +113,15 @@ const handler = createMcpHandler(
       if (!r) return { content: [{ type: "text" as const, text: "Routine not found" }], isError: true };
       if (a.exercises && a.removeExerciseIds) return { content: [{ type: "text" as const, text: "Pass either exercises or removeExerciseIds, not both" }], isError: true };
       let exercises = r.exercises;
-      if (a.exercises) exercises = await toExercises(u, a.exercises, await unitFor(u, a.unit));
+      if (a.exercises) {
+        const prev = r.exercises; const used = new Set<number>();
+        exercises = (await toExercises(u, a.exercises, await unitFor(u, a.unit))).map((e, i) => {
+          if (a.exercises![i].progression) return e; // explicit (incl. mode off → dropped)
+          const j = prev.findIndex((p, k) => !used.has(k) && p.exerciseId === e.exerciseId);
+          if (j < 0) return e; used.add(j);
+          return prev[j].progression ? { ...e, progression: prev[j].progression } : e; // keep existing setting
+        });
+      }
       else if (a.removeExerciseIds) { const rm = new Set(a.removeExerciseIds); exercises = r.exercises.filter((e) => !rm.has(e.exerciseId)); }
       return ok(await svc.updateRoutine(u, r.id, {
         name: a.name ?? r.name, folder: a.folder !== undefined ? a.folder : r.folder, notes: a.notes !== undefined ? a.notes : r.notes, exercises,
@@ -296,9 +316,24 @@ const handler = createMcpHandler(
     }, async (_a, ctx) => ok(await svc.getCoachingContext(uid(ctx))));
 
     server.registerTool("suggest_progression", {
-      title: "Suggest progression", description: "Rule-based next-session targets (double progression). For each exercise in a routine (or the 15 most recent exercises): action increase_weight | add_reps | deload | start, nextWeight (user's unit), nextReps, stall flag and reason. Rep range top defaults to the routine's target reps, else 12; bottom = top − 4. Increment 2.5 kg / 5 lb, half for small isolation lifts.",
+      title: "Suggest progression", description: "Rule-based next-session targets (double progression). For each exercise in a routine (or the 15 most recent exercises): action increase_weight | add_reps | deload | start, nextWeight (user's unit), nextReps, stall flag and reason. Rep range top defaults to the routine's target reps, else 12; bottom = top − 4. Increment 2.5 kg / 5 lb, half for small isolation lifts. Generic advice only: for routine exercises with a progression setting, use get_progression_suggestions (what the app actually pre-fills).",
       inputSchema: z.object({ routineId: z.string().optional(), repMin: z.number().int().min(1).max(30).optional(), repMax: z.number().int().min(1).max(50).optional() }),
     }, async (a, ctx) => ok(await svc.suggestProgression(uid(ctx), a)));
+
+    server.registerTool("get_progression_suggestions", {
+      title: "Progression suggestions",
+      description: "What the app will pre-fill next time a routine is started, for every exercise with a progression setting: outcome (first | increase | hold | deload | blocked), nextWeight (user's unit, null = bodyweight/first session), nextReps per working set, last session, chip label and a plain-English reason. Rules: Double — every working set at the top weight hits repMax → +increment and reps reset to repMin; else same weight, +1 rep on the short sets. Linear — every set hits target reps → +increment; else hold; N consecutive misses at the same weight → deload X%. Only completed normal sets count (warm-up/drop/failure ignored); RPE 10 on a top set blocks an increase. History = latest finished workout of that routine (same slot), else any workout with the exercise. Without routineId: all routines that have a setting.",
+      inputSchema: z.object({ routineId: z.string().optional() }),
+    }, async (a, ctx) => ok(await svc.getProgressionSuggestions(uid(ctx), a.routineId)));
+
+    server.registerTool("set_exercise_progression", {
+      title: "Set exercise progression",
+      description: "Turn auto-progression on/off or change it for one exercise in a routine. `exercise` = slot index (0-based), exercise id, or name. Missing fields use defaults (double 8–12, linear 5 reps, deload 10% after 2 misses, equipment-based increment). Ask the user before changing.",
+      inputSchema: z.object({ routineId: z.string(), exercise: z.union([z.string(), z.number().int().min(0)]) }).merge(progIn),
+    }, async (a, ctx) => {
+      const { routineId, exercise, ...cfg } = a;
+      return ok(await svc.setExerciseProgression(uid(ctx), routineId, exercise, cfg));
+    });
 
     server.registerTool("coach_instructions", {
       title: "How to coach with Fortis", description: "Guidance for an AI assistant acting as the user's strength coach with these tools (workflow, rules, tone). Read once per conversation.",

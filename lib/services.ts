@@ -12,6 +12,7 @@ import { BUILTIN_EXERCISES, builtinId } from "./data/exercises";
 import { mondayOf, summarizeWeek, offsetToTz } from "./weekly";
 import { addWeeks, defaultTz, isValidTz, localDateKey, mondayOfTz } from "./tz";
 import { suggestNext, type Session } from "./coach";
+import { planRoutine, normalizeConfig, describeConfig, type Plan, type ProgressionConfig } from "./progression";
 import { buildCalendar } from "./calendar";
 
 const { exercise, routine, workout, measurement, settings, apiKey, favoriteExercise, routineShare } = schema;
@@ -32,6 +33,12 @@ export const workoutExerciseSchema = z.object({
   supersetId: z.string().nullable().optional(),
   restSec: z.number().int().nullable().optional(),
   sets: z.array(setSchema).default([]),
+  progression: z.object({
+    mode: z.enum(["off", "double", "linear"]),
+    repMin: z.number().int().min(1).max(50).optional(), repMax: z.number().int().min(1).max(50).optional(),
+    reps: z.number().int().min(1).max(50).optional(), increment: z.number().positive().max(50).optional(),
+    unit: z.enum(["kg", "lb"]).optional(), deloadAfter: z.number().int().min(0).max(10).optional(), deloadPct: z.number().min(1).max(50).optional(),
+  }).optional().catch(undefined),
 });
 export const workoutInputSchema = z.object({
   id: z.string().optional(),
@@ -394,7 +401,7 @@ export async function getSharedRoutine(token: string) {
     .where(and(eq(routineShare.token, token), isNull(routineShare.revokedAt)));
   if (!r) return null;
   return { name: r.name, notes: r.notes, sharedAt: r.createdAt, owner: r.owner?.split(" ")[0] || null, unit: (r.unit === "lb" ? "lb" : "kg") as "kg" | "lb",
-    exercises: r.exercises.map((e) => ({ exerciseId: e.exerciseId, name: e.name, notes: e.notes, supersetId: e.supersetId ?? null, sets: e.sets.map((x) => ({ type: x.type, weight: x.weight, reps: x.reps, rpe: null, done: false })) })) };
+    exercises: r.exercises.map((e) => ({ exerciseId: e.exerciseId, name: e.name, notes: e.notes, supersetId: e.supersetId ?? null, ...(e.progression ? { progression: e.progression } : {}), sets: e.sets.map((x) => ({ type: x.type, weight: x.weight, reps: x.reps, rpe: null, done: false })) })) };
 }
 /** Copy a shared routine into the user's routines (always a new routine; nothing is overwritten). */
 export async function importSharedRoutine(userId: string, token: string) {
@@ -447,6 +454,7 @@ export async function suggestProgression(userId: string, opts: { routineId?: str
   }
   return {
     unit, routine: routineName, rule: "Double progression: all working sets at the top weight reach the top of the rep range → add the smallest increment and restart at the bottom; otherwise same weight, +1 rep. No progress in 3+ sessions → deload ~10%.",
+    note: "Exercises with a progression setting on the routine (set_exercise_progression) follow that setting instead — see get_progression_suggestions.",
     suggestions: targets.map((t) => {
       const ss = m.get(t.exerciseId)?.sessions ?? [];
       const s = suggestNext(t.name, ss, { unit, repMax: opts.repMax ?? t.repMax, repMin: opts.repMin });
@@ -454,6 +462,52 @@ export async function suggestProgression(userId: string, opts: { routineId?: str
         lastWeight: dispW(s.lastWeightKg, unit), lastReps: s.lastReps, stalled: s.stalled, sessionsLogged: ss.length, lastDone: ss.at(-1)?.date ?? null, reason: s.reason };
     }),
   };
+}
+
+// ---------- auto progression (config on routine exercise JSON; see lib/progression.ts) ----------
+async function progressionHistory(userId: string) {
+  return db.select({ routineId: workout.routineId, startedAt: workout.startedAt, endedAt: workout.endedAt, exercises: workout.exercises })
+    .from(workout).where(eq(workout.userId, userId)).orderBy(desc(workout.startedAt)).limit(200);
+}
+async function equipmentMap(userId: string) {
+  return Object.fromEntries((await listExercises(userId)).map((e) => [e.id, e.equipment]));
+}
+/** Suggestions per routine id for every progression-enabled exercise (used to pre-fill on start). */
+export async function routinePlans(userId: string, routines: { id: string; exercises: WorkoutExercise[] }[], unit: "kg" | "lb") {
+  const withProg = routines.filter((r) => r.exercises.some((e) => normalizeConfig(e.progression)));
+  if (!withProg.length) return {} as Record<string, Plan[]>;
+  const [hist, equipment] = await Promise.all([progressionHistory(userId), equipmentMap(userId)]);
+  return Object.fromEntries(withProg.map((r) => [r.id, planRoutine(r, hist, { unit, equipment })])) as Record<string, Plan[]>;
+}
+export async function getProgressionSuggestions(userId: string, routineId?: string) {
+  const unit = (await getSettings(userId)).unit as "kg" | "lb";
+  const rs = routineId ? [await getRoutine(userId, routineId)].filter(Boolean) as Awaited<ReturnType<typeof listRoutines>> : await listRoutines(userId);
+  if (routineId && !rs.length) throw new Error("Routine not found");
+  const [hist, equipment] = await Promise.all([progressionHistory(userId), equipmentMap(userId)]);
+  return { unit, routines: rs.map((r) => {
+    const plans = planRoutine(r, hist, { unit, equipment });
+    return { routineId: r.id, routine: r.name, exercises: r.exercises.map((e, slot) => {
+      const p = plans.find((x) => x.slot === slot)?.suggestion;
+      return { slot, exerciseId: e.exerciseId, exercise: e.name, progression: describeConfig(e.progression, equipment[e.exerciseId], unit),
+        ...(p ? { outcome: p.outcome, nextWeight: dispW(p.weightKg, unit), nextReps: p.reps, lastWeight: dispW(p.lastWeightKg, unit), lastReps: p.lastReps, label: p.label, reason: p.reason } : { outcome: "off" }) };
+    }) };
+  }).filter((r) => !routineId ? r.exercises.some((e) => e.outcome !== "off") : true) };
+}
+/** Set (or turn off) progression on one routine exercise, matched by slot index, exercise id or name. */
+export async function setExerciseProgression(userId: string, routineId: string, exercise: string | number, cfg: ProgressionConfig) {
+  const r = await getRoutine(userId, routineId);
+  if (!r) throw new Error("Routine not found");
+  const q = String(exercise).toLowerCase();
+  let slot = typeof exercise === "number" ? exercise : r.exercises.findIndex((e) => e.exerciseId === exercise);
+  if (slot < 0) slot = r.exercises.findIndex((e) => e.name.toLowerCase() === q);
+  if (slot < 0) slot = r.exercises.findIndex((e) => e.name.toLowerCase().includes(q));
+  if (slot < 0 || !r.exercises[slot]) throw new Error(`Exercise "${exercise}" not in this routine`);
+  const unit = (await getSettings(userId)).unit as "kg" | "lb";
+  const eq_ = (await equipmentMap(userId))[r.exercises[slot].exerciseId];
+  const n = cfg.mode === "off" ? null : normalizeConfig({ unit, ...cfg }, eq_, unit);
+  const exercises = r.exercises.map((e, i) => { if (i !== slot) return e; const { progression: _p, ...rest } = e; return n ? { ...rest, progression: n } : rest; });
+  await db.update(routine).set({ exercises, updatedAt: new Date() }).where(and(eq(routine.id, routineId), eq(routine.userId, userId)));
+  return { routineId, slot, exercise: r.exercises[slot].name, progression: n ?? { mode: "off" }, summary: describeConfig(n, eq_, unit) };
 }
 
 export async function getCoachingContext(userId: string) {

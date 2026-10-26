@@ -65,6 +65,8 @@ export type WorkoutExercise = {
   supersetId?: string | null;
   restSec?: number | null;
   sets: WorkoutSet[];
+  /** optional auto-progression (routine templates; copied into workouts harmlessly) */
+  progression?: import("../progression").ProgressionConfig;
 };
 
 export const exercise = pgTable(
