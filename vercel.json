@@ -1,1 +1,4 @@
-{ "$schema": "https://openapi.vercel.sh/vercel.json", "regions": ["cle1"] }
+{
+  "regions": ["cle1"],
+  "crons": [{ "path": "/api/cron/idle", "schedule": "30 3 * * *" }]
+}

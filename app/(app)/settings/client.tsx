@@ -13,6 +13,8 @@ import { createApiKeyAction, revokeApiKeyAction, updateSettingsAction } from "@/
 import { authClient } from "@/lib/auth-client";
 import { usePref, setPref, useVolume, setVolume, useIdleHours, setIdleHours } from "@/lib/prefs";
 import { ImportRow, BackupRows } from "./data-tools";
+import { ShortcutsSection } from "./shortcuts";
+import { NotificationsSection } from "./notifications";
 
 type Key = { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null; revokedAt: string | null };
 
@@ -42,7 +44,7 @@ function TzRow({ value, onChange }: { value: string | null; onChange: (v: string
   );
 }
 
-export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { unit: "kg" | "lb"; timezoneOverride: string | null }; keys: Key[]; mcpUrl: string; email: string }) {
+export function SettingsClient({ settings, keys, mcpUrl, email, routines }: { routines: { id: string; name: string }[]; settings: { unit: "kg" | "lb"; timezoneOverride: string | null }; keys: Key[]; mcpUrl: string; email: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [s, setS] = useState(settings);
@@ -76,6 +78,10 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
           <BackupRows Row={Row} />
         </div>
       </section>
+
+      <NotificationsSection Row={Row} idleHours={idleH} />
+
+      <ShortcutsSection routines={routines} />
 
       <section id="mcp"><p className="mono-label mb-2">MCP / API keys</p>
         <div className="receipt rounded-xl border px-4 py-5">

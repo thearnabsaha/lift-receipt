@@ -173,3 +173,33 @@ export const routineShare = pgTable(
   },
   (t) => [index("routine_share_routine_idx").on(t.routineId)],
 );
+
+/** Web Push subscriptions (one per device/browser). */
+export const pushSubscription = pgTable(
+  "push_subscription",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id").notNull().references(() => user.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    userAgent: text("user_agent"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("push_sub_endpoint_idx").on(t.endpoint), index("push_sub_user_idx").on(t.userId)],
+);
+
+/** Server mirror of the in-progress workout (the draft itself lives on the device) for the idle push. */
+export const idleWatch = pgTable("idle_watch", {
+  userId: text("user_id").primaryKey().references(() => user.id, { onDelete: "cascade" }),
+  active: boolean("active").notNull().default(false),
+  startedAt: timestamp("started_at"),
+  lastActivityAt: timestamp("last_activity_at"),
+  hours: integer("hours").notNull().default(3),
+  dueAt: timestamp("due_at"),
+  notifiedAt: timestamp("notified_at"),
+  runId: text("run_id"),
+  /** when the scheduled run will next wake; a stale value means we need a new run */
+  runUntil: timestamp("run_until"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});

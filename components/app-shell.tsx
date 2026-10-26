@@ -7,6 +7,7 @@ import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { OfflineBadge } from "@/components/pwa";
 import { IdleGuard } from "@/components/idle-prompt";
+import { IdleSync } from "@/components/idle-sync";
 import { DeletesSync } from "@/components/delete-workout";
 import { cn } from "@/lib/utils";
 
@@ -44,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-[calc(4.5rem+env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-6 md:pb-12">{children}</main>
-      <IdleGuard />
+      <IdleGuard /><IdleSync />
       <DeletesSync />
       {/* Opaque bar. The ::after slab paints solid background far below the bar, so if iOS standalone
           positions fixed elements above the physical bottom edge, no page content can show underneath. */}

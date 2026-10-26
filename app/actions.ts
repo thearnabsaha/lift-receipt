@@ -92,3 +92,31 @@ export async function previewRestoreAction(b: unknown) {
 export async function restoreChunkAction(b: unknown, last: boolean) {
   const u = await requireUser(); const r = await io.restoreChunk(u.id, b); if (last) done(); return r;
 }
+
+// ---------- push / idle ----------
+export async function pushStatusAction() {
+  const u = await requireUser(); const { pushConfigured, subscriptionCount, vapidPublicKey } = await import("@/lib/push");
+  return { configured: pushConfigured(), publicKey: vapidPublicKey(), devices: await subscriptionCount(u.id) };
+}
+export async function subscribePushAction(sub: { endpoint: string; keys: { p256dh: string; auth: string } }, ua?: string) {
+  const u = await requireUser(); const { saveSubscription } = await import("@/lib/push"); await saveSubscription(u.id, sub, ua); return { ok: true };
+}
+export async function unsubscribePushAction(endpoint: string) {
+  const u = await requireUser(); const { removeSubscription } = await import("@/lib/push"); await removeSubscription(u.id, endpoint); return { ok: true };
+}
+export async function testPushAction(endpoint?: string) {
+  const u = await requireUser(); const { sendToUser } = await import("@/lib/push");
+  return sendToUser(u.id, { title: "Fortis", body: "Notifications are on. You'll only hear from us when a workout has been idle.", url: "/settings#notifications", tag: "fortis-test" }, endpoint);
+}
+export async function syncIdleAction(s: { active: boolean; startedAt?: string | null; lastActivityAt?: string | null; hours: number }) {
+  const u = await requireUser(); const p = await import("@/lib/push");
+  const r = await p.syncIdle(u.id, s);
+  if (r.needsRun && r.dueAt) {
+    try {
+      const { start } = await import("workflow/api"); const { idleWatchWorkflow } = await import("@/workflows/idle-watch");
+      const run = await start(idleWatchWorkflow, [u.id]);
+      await p.markRun(u.id, run.runId, r.dueAt);
+    } catch (e) { console.error("idle workflow start failed", e); }
+  }
+  return { ok: true, dueAt: r.dueAt?.toISOString() ?? null };
+}

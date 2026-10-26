@@ -30,3 +30,14 @@ export function parseIdleHours(v: string | null): number {
   const n = v === null ? IDLE_DEFAULT_H : Number(v);
   return (IDLE_OPTIONS as readonly number[]).includes(n) ? n : IDLE_DEFAULT_H;
 }
+
+/** When the idle push is due: last activity + threshold (null when the feature is off). */
+export function idleDueAt(d: Draft, hours: number): Date | null {
+  return hours > 0 ? new Date(lastActivity(d) + hours * 3_600_000) : null;
+}
+/** Push text. `startedAt` → "running 3h" / "running 3.5h". */
+export function idlePushMessage(startedAt: Date | string, now: number) {
+  const h = Math.max(0, now - +new Date(startedAt)) / 3_600_000;
+  const r = h >= 10 ? Math.floor(h) : Math.max(0.5, Math.floor(h * 2) / 2);
+  return { title: "Still working out?", body: `Your workout has been running ${r}h. Tap to finish or discard.`, url: "/workout", tag: "fortis-idle" };
+}
