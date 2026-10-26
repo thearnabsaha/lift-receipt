@@ -57,3 +57,13 @@ test("sync status classification", () => {
   assert.equal(classifyStatus(500), "retry"); assert.equal(classifyStatus(401), "retry");
   assert.equal(classifyStatus(400), "rejected"); assert.equal(classifyStatus(422), "rejected");
 });
+
+import { planRestore, type Backup } from "../lib/backup";
+test("restore: workouts in later chunks still link to their routine", () => {
+  const b: Backup = { app: "fortis", version: 1, exportedAt: "", exercises: [], favorites: [], measurements: [], settings: null,
+    routines: [{ id: "r-old", name: "Leg day", folder: null, notes: null, exercises: [] }],
+    workouts: [{ id: "w", name: "Leg day", notes: null, routineId: "r-old", startedAt: "2026-01-01T10:00:00Z", endedAt: null, exercises: [] }] };
+  const p = planRestore(b, { exercises: [], favorites: [], routineNames: ["Leg day"], routineIds: [{ id: "r-new", name: "Leg day" }], workoutStarts: [], measurements: [], hasSettings: true }, () => "x");
+  assert.equal(p.workouts[0].routineId, "r-new");
+  assert.equal(p.routines.length, 0);
+});

@@ -22,7 +22,7 @@ export function validateBackup(x: unknown): Backup {
 
 export type Existing = {
   /** all exercises visible to the user (built-ins + custom) */ exercises: { id: string; name: string; userId: string | null }[];
-  favorites: string[]; routineNames: string[]; workoutStarts: string[]; measurements: BMeasurement[]; hasSettings: boolean;
+  favorites: string[]; routineNames: string[]; /** existing routines, so later restore chunks can link workouts to them */ routineIds?: { id: string; name: string }[]; workoutStarts: string[]; measurements: BMeasurement[]; hasSettings: boolean;
 };
 const minuteKey = (d: string | Date) => new Date(d).toISOString().slice(0, 16);
 const mKey = (m: BMeasurement) => `${m.kind}|${minuteKey(m.date)}|${Math.round(m.value * 100)}`;
@@ -45,7 +45,8 @@ export function planRestore(b: Backup, ex: Existing, newId: () => string) {
   const routineMap = new Map<string, string>();
   const rNames = new Set(ex.routineNames.map(nameKey));
   const routines: BRoutine[] = [];
-  for (const r of b.routines) { if (rNames.has(nameKey(r.name))) continue; rNames.add(nameKey(r.name)); const id = newId(); routineMap.set(r.id, id); routines.push({ ...r, id, exercises: remap(r.exercises) }); }
+  const existingR = new Map((ex.routineIds ?? []).map((r) => [nameKey(r.name), r.id]));
+  for (const r of b.routines) { if (rNames.has(nameKey(r.name))) { const hit = existingR.get(nameKey(r.name)); if (hit) routineMap.set(r.id, hit); continue; } rNames.add(nameKey(r.name)); const id = newId(); routineMap.set(r.id, id); routines.push({ ...r, id, exercises: remap(r.exercises) }); }
   const starts = new Set(ex.workoutStarts.map(minuteKey));
   const workouts: BWorkout[] = []; let dupWorkouts = 0;
   for (const w of b.workouts) {

@@ -94,7 +94,7 @@ export function BackupRows({ Row }: { Row: Row }) {
       const n = Math.max(1, Math.ceil(b.workouts.length / CHUNK));
       for (let i = 0; i < n; i++) {
         setBusy(`Restoring ${Math.min((i + 1) * CHUNK, b.workouts.length)} / ${b.workouts.length}…`);
-        const part = { ...b, workouts: b.workouts.slice(i * CHUNK, (i + 1) * CHUNK), ...(i > 0 ? { routines: [], measurements: [], favorites: [], settings: null } : {}) };
+        const part = { ...b, workouts: b.workouts.slice(i * CHUNK, (i + 1) * CHUNK), ...(i > 0 ? { measurements: [], favorites: [], settings: null } : {}) };
         const r = await restoreChunkAction(part, i === n - 1);
         for (const k of Object.keys(tot) as (keyof typeof tot)[]) tot[k] += r[k];
       }

@@ -81,12 +81,12 @@ async function existing(userId: string) {
   const [lib, favs, rs, ws, ms, st] = await Promise.all([
     libFor(userId),
     db.select({ id: favoriteExercise.exerciseId }).from(favoriteExercise).where(eq(favoriteExercise.userId, userId)),
-    db.select({ name: routine.name }).from(routine).where(eq(routine.userId, userId)),
+    db.select({ id: routine.id, name: routine.name }).from(routine).where(eq(routine.userId, userId)),
     db.select({ s: workout.startedAt }).from(workout).where(eq(workout.userId, userId)),
     db.select({ kind: measurement.kind, value: measurement.value, date: measurement.date }).from(measurement).where(eq(measurement.userId, userId)),
     db.select({ u: settings.userId }).from(settings).where(eq(settings.userId, userId)),
   ]);
-  return { exercises: lib, favorites: favs.map((f) => f.id), routineNames: rs.map((r) => r.name), workoutStarts: ws.map((w) => w.s.toISOString()), measurements: ms.map((m) => ({ ...m, date: m.date.toISOString() })), hasSettings: st.length > 0 };
+  return { exercises: lib, favorites: favs.map((f) => f.id), routineNames: rs.map((r) => r.name), routineIds: rs, workoutStarts: ws.map((w) => w.s.toISOString()), measurements: ms.map((m) => ({ ...m, date: m.date.toISOString() })), hasSettings: st.length > 0 };
 }
 
 /** Dry run. The client sends workouts without their exercises to keep the request small. */

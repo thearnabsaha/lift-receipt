@@ -125,6 +125,7 @@ const handler = createMcpHandler(
     }, async (a, ctx) => {
       const u = uid(ctx);
       const r = a.routineId ? await svc.getRoutine(u, a.routineId) : null;
+      if (a.routineId && !r) return { content: [{ type: "text" as const, text: "Routine not found" }], isError: true };
       const w = await svc.saveWorkout(u, {
         name: a.name ?? r?.name ?? "Workout", routineId: r?.id ?? null, startedAt: a.startedAt ? new Date(a.startedAt) : new Date(), endedAt: null,
         exercises: (r?.exercises ?? []).map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s, done: false })) })),
