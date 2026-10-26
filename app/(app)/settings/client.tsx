@@ -113,6 +113,26 @@ export function SettingsClient({ settings, keys, mcpUrl, email }: { settings: { 
         </div>
       </section>
 
+      <section id="coach"><p className="mono-label mb-2">Coach · via Grok Bot</p>
+        <div className="receipt rounded-xl border px-4 py-5 text-sm">
+          <p>Fortis has no built-in AI. Connect Grok Bot to the MCP server and it becomes your coach: it reads your history, weekly summary and stalled lifts, then suggests the next weight and reps.</p>
+          <ol className="mt-3 list-decimal space-y-1 pl-5 text-muted-foreground">
+            <li>Create an API key under <a href="#mcp" className="underline underline-offset-4">MCP / API keys</a> above and copy it.</li>
+            <li>In Grok Bot, add a custom MCP connector with URL <span className="font-mono text-foreground">{mcpUrl}</span>.</li>
+            <li>Set the header <span className="font-mono text-foreground">Authorization: Bearer &lt;key&gt;</span>.</li>
+            <li>Ask away. Grok Bot can call <span className="font-mono">get_coaching_context</span>, <span className="font-mono">suggest_progression</span> and <span className="font-mono">get_weekly_summary</span>.</li>
+          </ol>
+          <div className="tear my-4" />
+          <p className="mono-label mb-2">Try asking</p>
+          <ul className="space-y-1.5">
+            {["Plan my training week: 4 days, push/pull/legs.", "Review my last week. What did I neglect?", "What weight should I use on bench next session?", "Which lifts have stalled, and should I deload?", "Turn your plan into Fortis routines."].map((p) => (
+              <li key={p}><button type="button" onClick={() => copy(p)} className="flex w-full items-center gap-2 rounded-md border border-dashed px-3 py-2 text-left hover:bg-muted/50 active:translate-y-px"><span className="flex-1">“{p}”</span><Copy className="size-3.5 shrink-0 text-muted-foreground" /></button></li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">Suggestions are a guide, not medical advice. Weights are rounded to plate-friendly increments.</p>
+        </div>
+      </section>
+
       <section><p className="mono-label mb-2">Account</p>
         <div className="rounded-xl border bg-card">
           <Row title={email} desc="Signed in"><Button variant="outline" size="sm" onClick={async () => { await authClient.signOut(); router.push("/"); router.refresh(); }}><LogOut className="size-4" />Sign out</Button></Row>

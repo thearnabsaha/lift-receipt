@@ -4,6 +4,14 @@ import * as svc from "@/lib/services";
 import { round } from "@/lib/calc";
 
 export const maxDuration = 60;
+const BASE = process.env.BETTER_AUTH_URL || "https://lift-receipt.vercel.app";
+const COACH = `You are the user's strength coach, using the Fortis MCP tools. Workflow:
+1. get_coaching_context first (unit, trends, balance, routines, body stats). Use the user's unit everywhere.
+2. Progression: suggest_progression (optionally per routine) gives rule-based targets (double progression; deload after 3 stalled sessions). Prefer these numbers; adjust only with a stated reason.
+3. Weekly reviews: get_weekly_summary (default last full week; pass today's date for this week so far).
+4. Balance: aim for ~10-20 working sets per major muscle per week; flag muscles with 0 sets in muscle balance.
+5. Never change data without asking. To save a plan use create_routine / update_routine; to log use log_workout.
+6. Be brief and concrete: exercise, sets x reps @ weight, one-line reason. No medical advice; suggest rest or a professional for pain.`;
 
 type Ctx = { http?: { authInfo?: { extra?: Record<string, unknown> } } };
 const uid = (ctx: unknown) => {
@@ -226,6 +234,64 @@ const handler = createMcpHandler(
       title: "Muscle balance", description: "Per-muscle training load over a period (7d/30d/90d/all): working sets (primary muscle = 1, secondary = 0.5, warm-ups excluded), volume in kg, last trained date and top exercises, sorted most to least trained. Same data as the History → Muscles map.",
       inputSchema: z.object({ period: z.enum(["7d", "30d", "90d", "all"]).default("30d") }),
     }, async (a, ctx) => ok(await svc.getMuscleBalance(uid(ctx), a.period)));
+
+    // ---------- favourites ----------
+    server.registerTool("set_favorite_exercise", {
+      title: "Star / unstar exercise", description: "Mark an exercise as a favourite (favorite: true) or remove it (false). Favourites sort first in the app's exercise picker and library.",
+      inputSchema: z.object({ exerciseId: z.string().describe("Exercise id or name"), favorite: z.boolean().default(true) }),
+    }, async (a, ctx) => {
+      const u = uid(ctx);
+      const isId = a.exerciseId.startsWith("bi_") || /^[0-9a-f-]{36}$/.test(a.exerciseId);
+      const ex = await svc.resolveExercise(u, isId ? { exerciseId: a.exerciseId } : { name: a.exerciseId }, false);
+      return ok({ ...(await svc.setFavorite(u, ex.id, a.favorite)), name: ex.name });
+    });
+    server.registerTool("list_favorite_exercises", {
+      title: "List favourite exercises", description: "The user's starred exercises (id, name, muscle, equipment).",
+      inputSchema: z.object({}),
+    }, async (_a, ctx) => ok(await svc.listFavorites(uid(ctx))));
+
+    // ---------- sharing ----------
+    server.registerTool("share_routine", {
+      title: "Share routine", description: "Turn on a public read-only link for one of the user's routines and return it. Anyone with the link can view it (no login) and import a copy into their own Fortis. Reuses the existing link if already shared.",
+      inputSchema: z.object({ routineId: z.string() }),
+    }, async (a, ctx) => {
+      const sh = await svc.shareRoutine(uid(ctx), a.routineId);
+      return ok({ url: `${BASE}/share/r/${sh.token}`, token: sh.token, createdAt: sh.createdAt });
+    });
+    server.registerTool("unshare_routine", {
+      title: "Stop sharing routine", description: "Revoke the public link(s) for a routine. Old links stop working immediately; copies others already imported are unaffected.",
+      inputSchema: z.object({ routineId: z.string() }),
+    }, async (a, ctx) => ok({ revoked: await svc.unshareRoutine(uid(ctx), a.routineId) }));
+
+    // ---------- weekly summary + coach ----------
+    server.registerTool("get_weekly_summary", {
+      title: "Weekly summary", description: "Summary of one Mon–Sun week (default: last full week; pass any date inside a week, e.g. today, for 'this week so far'): sessions, volume (kg), working sets, minutes, new PRs, best lift (highest e1RM set), previous week and % change, most-trained and untrained muscles, and a plain-English `recap` line. Week boundaries use Asia/Calcutta unless tzOffsetMinutes is given.",
+      inputSchema: z.object({ weekStart: z.string().optional().describe("ISO date inside the wanted week"), tzOffsetMinutes: z.number().int().optional().describe("Minutes east of UTC, default 330") }),
+    }, async (a, ctx) => ok(await svc.getWeeklySummary(uid(ctx), { weekStart: a.weekStart ? new Date(a.weekStart) : undefined, tzOffsetMin: a.tzOffsetMinutes })));
+
+    server.registerTool("get_coaching_context", {
+      title: "Coaching context", description: "Compact snapshot for coaching, in one call: unit, last workouts, 6-week volume trend, per-exercise session trend over 6 weeks (best set + e1RM, in the user's unit), 30-day muscle balance, top PRs, routines, latest body measurements, favourites. Call this first before planning or reviewing training.",
+      inputSchema: z.object({}),
+    }, async (_a, ctx) => ok(await svc.getCoachingContext(uid(ctx))));
+
+    server.registerTool("suggest_progression", {
+      title: "Suggest progression", description: "Rule-based next-session targets (double progression). For each exercise in a routine (or the 15 most recent exercises): action increase_weight | add_reps | deload | start, nextWeight (user's unit), nextReps, stall flag and reason. Rep range top defaults to the routine's target reps, else 12; bottom = top − 4. Increment 2.5 kg / 5 lb, half for small isolation lifts.",
+      inputSchema: z.object({ routineId: z.string().optional(), repMin: z.number().int().min(1).max(30).optional(), repMax: z.number().int().min(1).max(50).optional() }),
+    }, async (a, ctx) => ok(await svc.suggestProgression(uid(ctx), a)));
+
+    server.registerTool("coach_instructions", {
+      title: "How to coach with Fortis", description: "Guidance for an AI assistant acting as the user's strength coach with these tools (workflow, rules, tone). Read once per conversation.",
+      inputSchema: z.object({}),
+    }, async () => ({ content: [{ type: "text" as const, text: COACH }] }));
+
+    server.registerPrompt("plan_my_week", {
+      title: "Plan my week", description: "Draft next week's training from my data",
+      argsSchema: z.object({ days: z.string().optional().describe("Training days available, e.g. 'Mon, Wed, Fri'") }),
+    }, ({ days }) => ({ messages: [{ role: "user" as const, content: { type: "text" as const, text: `${COACH}\n\nTask: plan my next training week${days ? ` on ${days}` : ""}. Call get_coaching_context and suggest_progression (per routine), then give a day-by-day plan with exercises, sets x reps @ weight, and one line on why. Offer to save new routines with create_routine/update_routine, but ask before changing anything.` } }] }));
+    server.registerPrompt("review_my_last_week", {
+      title: "Review my last week", description: "Recap and feedback on last week",
+      argsSchema: z.object({}),
+    }, () => ({ messages: [{ role: "user" as const, content: { type: "text" as const, text: `${COACH}\n\nTask: review my last week. Call get_weekly_summary and get_coaching_context, then tell me what went well, what stalled, neglected muscles, and 3 concrete changes for next week.` } }] }));
   },
   { serverInfo: { name: "fortis", version: "1.0.0" } },
 );
