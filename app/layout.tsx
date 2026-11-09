@@ -12,10 +12,11 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 const SPLASH: [number, number, number][] = [[428, 926, 3], [430, 932, 3], [393, 852, 3], [390, 844, 3], [375, 812, 3], [414, 896, 2], [375, 667, 2]];
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://lift-receipt.vercel.app"),
   authors: [{ name: "Arnab Saha", url: "https://x.com/TheArnabSaha" }],
   creator: "Arnab Saha",
   title: { default: "Fortis · Workout tracker & gym log", template: "%s · Fortis" },
-  description: "Log sets, reps and weights. Routines, rest timer, PRs, progress charts. Every workout printed like a receipt. Free forever.",
+  description: "Log sets, reps and weights offline. Routines, automatic progression, PRs, progress charts and form videos. Every workout printed like a receipt. Free forever.",
   applicationName: "Fortis",
   // "default" = opaque status bar that follows the light/dark system appearance on iOS, so it always matches the theme
   appleWebApp: {

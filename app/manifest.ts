@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/",
     name: "Fortis — Workout Tracker",
     short_name: "Fortis",
-    description: "Fast gym log: sets, rest timer, PRs, progress charts. Works offline.",
+    description: "Fast gym log: sets, routines, PRs, progression and progress charts. Works offline.",
     start_url: "/workout?source=pwa",
     scope: "/",
     display: "standalone",
