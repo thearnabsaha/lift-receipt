@@ -79,7 +79,7 @@ function SectionHead({ label, title, sub }: { label: string; title: string; sub?
 /** The hero receipt: lines "print" in one by one (CSS only; static under prefers-reduced-motion). */
 function PrintingReceipt() {
   let i = 0;
-  const d = () => ({ animationDelay: `${300 + i++ * 180}ms` });
+  const d = () => ({ animationDelay: `${250 + i++ * 110}ms` });
   return (
     <div className="receipt w-full rounded-2xl border p-5 font-mono text-[12.5px] shadow-[0_1px_3px_#0000001a] sm:p-6">
       <div className="lp-line flex items-center justify-between" style={d()}>
@@ -217,7 +217,7 @@ export default async function Landing() {
             <div className="relative mx-auto flex w-full max-w-md items-end justify-center">
               <div className="relative w-full max-w-[360px]">
                 <PrintingReceipt />
-                <div className="lp-line absolute -bottom-8 left-3 flex items-center gap-2 rounded-xl border bg-card px-3 py-2 shadow-[0_8px_24px_-8px_#00000030] sm:-bottom-5 sm:-left-8" style={{ animationDelay: "2700ms" }}>
+                <div className="lp-line absolute -bottom-8 left-3 flex items-center gap-2 rounded-xl border bg-card px-3 py-2 shadow-[0_8px_24px_-8px_#00000030] sm:-bottom-5 sm:-left-8" style={{ animationDelay: "2100ms" }}>
                   <TrendingUp className="size-4 text-success" />
                   <span className="font-mono text-[11px] uppercase tracking-wider">Next bench · <b className="text-foreground">102.5 kg × 5</b></span>
                 </div>
