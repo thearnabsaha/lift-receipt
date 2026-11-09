@@ -21,11 +21,10 @@ import { IdleDialog } from "@/components/idle-prompt";
 import { idleEndTime, idleMs, isIdle, IDLE_FINISH_FLAG } from "@/lib/idle";
 import { playSetDone } from "@/lib/sound";
 import { SwipeRow } from "@/components/swipe-row";
-import type { FinishSummary } from "@/components/finish-screen";
+import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
 import dynamic from "next/dynamic";
-// Opened on demand: keep the demo sheet (form videos, drawings) and the finish screen out of the workout's first-load bundle
+// Opened on demand: keep the demo sheet (form videos, drawings) out of the workout's first-load bundle
 const ExerciseDemoSheet = dynamic(() => import("@/components/exercise-demo").then((m) => m.ExerciseDemoSheet), { ssr: false });
-const FinishScreen = dynamic(() => import("@/components/finish-screen").then((m) => m.FinishScreen), { ssr: false });
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
 import { queueRoutineUpdate } from "@/lib/offline";
 import { Replace } from "lucide-react";
@@ -61,8 +60,8 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   const [st, setSt] = useState<EditorState>(() => (mode === "live" && !initial.draftId ? { ...initial, draftId: crypto.randomUUID(), lastActivityAt: initial.lastActivityAt ?? new Date().toISOString() } : initial));
   const endRef = useRef<string | null>(null); // set when finishing from the idle prompt
   const savedByAction = useRef(false); // saveWorkoutAction revalidates the router cache itself
-  // warm the lazy chunks once the editor is idle, so the finish screen also works offline later (SW caches them)
-  useEffect(() => { const t = setTimeout(() => { void import("@/components/finish-screen"); void import("@/components/exercise-demo"); }, 2500); return () => clearTimeout(t); }, []);
+  // warm the demo-sheet chunk once the editor is idle, so it also opens offline later (SW caches it)
+  useEffect(() => { const t = setTimeout(() => { void import("@/components/exercise-demo"); }, 2500); return () => clearTimeout(t); }, []);
   const [idleBusy, setIdleBusy] = useState(false);
   const idleHours = useIdleHours();
   const [now, setNow] = useState(() => Date.now());
