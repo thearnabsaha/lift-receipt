@@ -1,10 +1,8 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { SimpleLineChart } from "@/components/line-chart-lazy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,7 +15,6 @@ const label = (k: string) => k.replace("_", " ").replace(/^./, (c) => c.toUpperC
 const unitFor = (k: string, u: "kg" | "lb") => (k === "bodyweight" ? u : k === "bodyfat" ? "%" : "cm");
 
 export function MeasureClient({ rows, kinds, unit }: { rows: Row[]; kinds: string[]; unit: "kg" | "lb" }) {
-  const router = useRouter();
   const [kind, setKind] = useState("bodyweight");
   const [value, setValue] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
@@ -29,7 +26,7 @@ export function MeasureClient({ rows, kinds, unit }: { rows: Row[]; kinds: strin
       <form className="flex flex-wrap gap-2 rounded-xl border bg-card p-3" onSubmit={async (e) => {
         e.preventDefault(); const v = Number(value); if (!v) return;
         await logMeasurementAction({ kind, value: kind === "bodyweight" ? toKg(v, unit)! : v, date: new Date(date + "T12:00:00").toISOString() });
-        setValue(""); toast.success("Logged"); router.refresh();
+        setValue(""); toast.success("Logged");
       }}>
         <Select value={kind} onValueChange={setKind}><SelectTrigger className="h-10 w-40"><SelectValue /></SelectTrigger>
           <SelectContent>{kinds.map((k) => <SelectItem key={k} value={k}>{label(k)}</SelectItem>)}</SelectContent></Select>
@@ -40,11 +37,7 @@ export function MeasureClient({ rows, kinds, unit }: { rows: Row[]; kinds: strin
       <section className="mt-6 rounded-xl border bg-card p-4">
         <p className="mono-label mb-3">{label(kind)} trend</p>
         {series.length < 2 ? <p className="py-10 text-center text-sm text-muted-foreground">Log at least two entries to see a chart.</p> : (
-          <ChartContainer config={{ value: { label: `${label(kind)} (${unitFor(kind, unit)})`, color: "var(--chart-1)" } }} className="h-52 w-full">
-            <LineChart data={series}><CartesianGrid vertical={false} /><XAxis dataKey="date" tickLine={false} axisLine={false} fontSize={11} tickFormatter={(v: string) => v.slice(5)} />
-              <YAxis width={40} tickLine={false} axisLine={false} fontSize={11} domain={["auto", "auto"]} /><ChartTooltip content={<ChartTooltipContent />} />
-              <Line dataKey="value" stroke="var(--color-value)" strokeWidth={2} dot={{ r: 3 }} /></LineChart>
-          </ChartContainer>
+          <SimpleLineChart data={series} dataKey="value" label={`${label(kind)} (${unitFor(kind, unit)})`} className="h-52 w-full" />
         )}
       </section>
       <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-4">
@@ -59,7 +52,7 @@ export function MeasureClient({ rows, kinds, unit }: { rows: Row[]; kinds: strin
           <div key={r.id} className="flex items-center border-b py-2 text-sm">
             <span className="flex-1">{new Date(r.date).toLocaleDateString()}</span>
             <span className="font-mono tabular-nums">{round(show(kind, r.value), 1)} {unitFor(kind, unit)}</span>
-            <Button variant="ghost" size="icon" className="ml-2 size-7" aria-label="Delete" onClick={async () => { await deleteMeasurementAction(r.id); router.refresh(); }}><Trash2 className="size-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="ml-2 size-7" aria-label="Delete" onClick={async () => { await deleteMeasurementAction(r.id); }}><Trash2 className="size-3.5" /></Button>
           </div>
         ))}
       </section>

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { importChunkAction, previewImportAction, previewRestoreAction, restoreChunkAction } from "@/app/actions";
-import { parseImportCsv, type ImportedWorkout, type ImportFormat } from "@/lib/importers";
+import type { ImportedWorkout, ImportFormat } from "@/lib/importers";
 import { validateBackup, type Backup } from "@/lib/backup";
 
 const CHUNK = 20;
@@ -21,6 +21,7 @@ export function ImportRow({ Row }: { Row: Row }) {
   const pick = async (f: File) => {
     setBusy("Reading…");
     try {
+      const { parseImportCsv } = await import("@/lib/importers"); // CSV parser loads only when a file is picked
       const r = parseImportCsv(await f.text());
       if (!r.workouts.length) throw new Error("No workouts with weight or reps found");
       const p = await previewImportAction(r.workouts.map((w) => ({ startedAt: w.startedAt, names: [...new Set(w.exercises.map((e) => e.name))], sets: w.exercises.reduce((a, e) => a + e.sets.length, 0) })));

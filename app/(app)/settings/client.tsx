@@ -52,7 +52,7 @@ export function SettingsClient({ settings, keys, mcpUrl, email, routines }: { ro
   const soundSilent = usePref("soundSilent"); const vol = useVolume(); const idleH = useIdleHours();
   const [newKey, setNewKey] = useState<string | null>(null);
   const [keyName, setKeyName] = useState("Grok Bot");
-  const save = async (p: Partial<typeof s>) => { setS((x) => ({ ...x, ...p })); await updateSettingsAction(p); router.refresh(); toast.success("Saved"); };
+  const save = async (p: Partial<typeof s>) => { setS((x) => ({ ...x, ...p })); await updateSettingsAction(p); toast.success("Saved"); };
   const copy = (t: string) => { navigator.clipboard.writeText(t); toast.success("Copied"); };
   return (
     <div className="space-y-8">

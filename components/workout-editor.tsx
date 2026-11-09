@@ -21,8 +21,11 @@ import { IdleDialog } from "@/components/idle-prompt";
 import { idleEndTime, idleMs, isIdle, IDLE_FINISH_FLAG } from "@/lib/idle";
 import { playSetDone } from "@/lib/sound";
 import { SwipeRow } from "@/components/swipe-row";
-import { ExerciseDemoSheet } from "@/components/exercise-demo";
-import { FinishScreen, type FinishSummary } from "@/components/finish-screen";
+import type { FinishSummary } from "@/components/finish-screen";
+import dynamic from "next/dynamic";
+// Opened on demand: keep the demo sheet (form videos, drawings) and the finish screen out of the workout's first-load bundle
+const ExerciseDemoSheet = dynamic(() => import("@/components/exercise-demo").then((m) => m.ExerciseDemoSheet), { ssr: false });
+const FinishScreen = dynamic(() => import("@/components/finish-screen").then((m) => m.FinishScreen), { ssr: false });
 import { applyEverything, applyValuesOnly, diffRoutine, summarize, type RoutineDiff } from "@/lib/routine-diff";
 import { queueRoutineUpdate } from "@/lib/offline";
 import { Replace } from "lucide-react";
@@ -57,6 +60,9 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
   const router = useRouter();
   const [st, setSt] = useState<EditorState>(() => (mode === "live" && !initial.draftId ? { ...initial, draftId: crypto.randomUUID(), lastActivityAt: initial.lastActivityAt ?? new Date().toISOString() } : initial));
   const endRef = useRef<string | null>(null); // set when finishing from the idle prompt
+  const savedByAction = useRef(false); // saveWorkoutAction revalidates the router cache itself
+  // warm the lazy chunks once the editor is idle, so the finish screen also works offline later (SW caches them)
+  useEffect(() => { const t = setTimeout(() => { void import("@/components/finish-screen"); void import("@/components/exercise-demo"); }, 2500); return () => clearTimeout(t); }, []);
   const [idleBusy, setIdleBusy] = useState(false);
   const idleHours = useIdleHours();
   const [now, setNow] = useState(() => Date.now());
@@ -127,7 +133,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
       setSaving(true);
       try {
         const r = await saveRoutineAction(st.id ?? null, { name: st.name, folder: st.folder || null, notes: st.notes || null, exercises: toPayloadExercises(st, false).map((e) => ({ ...e, sets: e.sets.map((x) => ({ ...x, done: false })) })) });
-        toast.success("Routine saved"); router.push(`/workout`); router.refresh(); void r;
+        toast.success("Routine saved"); router.push(`/workout`); void r;
       } catch { toast.error("Could not save routine"); } finally { setSaving(false); }
       return;
     }
@@ -157,6 +163,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
     try {
       if (!navigator.onLine) throw new Error("offline");
       const res = await saveWorkoutAction(payload);
+      savedByAction.current = true;
       if (live) {
         localStorage.removeItem(ACTIVE_KEY);
         if (res.count) localStorage.setItem("lr-workout-count", String(res.count));
@@ -164,7 +171,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         return;
       }
       toast.success("Workout updated");
-      router.push(`/history/${id}`); router.refresh();
+      router.push(`/history/${id}`); // the action already revalidated: no extra refresh round trip
     } catch {
       // Online but the save failed: ask the sync endpoint directly to tell a hiccup from a real rejection.
       if (navigator.onLine) {
@@ -356,7 +363,7 @@ export function WorkoutEditor({ mode, initial, exercises, prev }: { mode: Mode; 
         </AlertDialogContent>
       </AlertDialog>
       {live && <IdleDialog open={idleOpen} idle={idleMs(st, now)} name={st.name} onFinish={finishIdle} onResume={() => upd(() => {})} onDiscard={cancel} />}
-      {finish && <FinishScreen s={finish} onClose={() => { router.push(finish.offline ? "/workout" : `/history/${finish.id}`); router.refresh(); }} />}
+      {finish && <FinishScreen s={finish} onClose={() => { router.push(finish.offline ? "/workout" : `/history/${finish.id}`); if (!savedByAction.current) router.refresh(); }} />}
       <ExercisePicker exercises={exercises} onPick={addExercises} trigger={<Button variant="outline" className="mt-4 h-11 w-full"><Plus className="size-4" />Add exercises</Button>} />
 
     </div>

@@ -89,8 +89,8 @@ export function RoutineMenu({ id, name, shared = false }: { id: string; name?: s
         <DropdownMenuContent align="end">
           <DropdownMenuItem asChild><Link href={`/routines/${id}`}><Pencil className="size-4" />Edit</Link></DropdownMenuItem>
           <DropdownMenuItem onClick={openShare}><Share2 className="size-4" />{shared ? "Share link" : "Share"}</DropdownMenuItem>
-          {shared && <DropdownMenuItem onClick={async () => { await unshareRoutineAction(id); toast.success("Sharing stopped"); router.refresh(); }}><Link2Off className="size-4" />Stop sharing</DropdownMenuItem>}
-          <DropdownMenuItem variant="destructive" onClick={async () => { if (!confirm("Delete routine?")) return; await deleteRoutineAction(id); toast.success("Routine deleted"); router.refresh(); }}><Trash2 className="size-4" />Delete</DropdownMenuItem>
+          {shared && <DropdownMenuItem onClick={async () => { await unshareRoutineAction(id); toast.success("Sharing stopped"); }}><Link2Off className="size-4" />Stop sharing</DropdownMenuItem>}
+          <DropdownMenuItem variant="destructive" onClick={async () => { if (!confirm("Delete routine?")) return; await deleteRoutineAction(id); toast.success("Routine deleted"); }}><Trash2 className="size-4" />Delete</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
       <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) router.refresh(); }}>
