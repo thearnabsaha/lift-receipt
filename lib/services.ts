@@ -70,6 +70,11 @@ export async function updateSettings(userId: string, patch: Partial<{ unit: stri
   await db.insert(settings).values(next).onConflictDoUpdate({ target: settings.userId, set: { unit: next.unit, restSec: next.restSec, autoRest: next.autoRest, timezone: next.timezone, timezoneOverride: next.timezoneOverride } });
   return next;
 }
+/** Store the device's detected IANA zone if it changed (silent background sync). */
+export async function syncTimezone(userId: string, tz: string) {
+  const cur = await getSettings(userId);
+  if (cur.timezone !== tz) await updateSettings(userId, { timezone: tz });
+}
 /** The zone to bucket weeks/days in: manual override → given (device cookie / MCP param) → last detected device zone → default (Asia/Kolkata). */
 export async function userTz(userId: string, given?: string | null) {
   const s = await getSettings(userId);

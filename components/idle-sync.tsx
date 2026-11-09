@@ -1,9 +1,13 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { syncIdleAction } from "@/app/actions";
 import { PUSH_FLAG } from "@/lib/push-client";
 import { readIdleHours } from "@/lib/prefs";
 import { ACTIVE_KEY } from "@/components/idle-prompt";
+
+// plain fetch (not a Server Action): background syncs must not queue ahead of saves or re-render the page
+const syncIdle = (body: { active: boolean; startedAt?: string | null; lastActivityAt?: string | null; hours: number }) =>
+  fetch("/api/sync/idle", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), keepalive: true })
+    .then((r) => { if (!r.ok) throw new Error(String(r.status)); });
 
 /** Mirrors the local active workout's timing to the server so the idle push can fire while the app is closed. */
 export function IdleSync() {
@@ -22,8 +26,8 @@ export function IdleSync() {
       if (key === last.current) return;
       const first = last.current === "";
       last.current = key;
-      if (first && !active) { syncIdleAction({ active: false, hours }).catch(() => {}); return; }
-      syncIdleAction({ active, startedAt: d?.startedAt ?? null, lastActivityAt: d?.lastActivityAt ?? d?.startedAt ?? null, hours }).catch(() => { last.current = ""; });
+      if (first && !active) { syncIdle({ active: false, hours }).catch(() => {}); return; }
+      syncIdle({ active, startedAt: d?.startedAt ?? null, lastActivityAt: d?.lastActivityAt ?? d?.startedAt ?? null, hours }).catch(() => { last.current = ""; });
     };
     const kick = () => { if (t) clearTimeout(t); t = setTimeout(run, 800); };
     run();

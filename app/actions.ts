@@ -43,8 +43,7 @@ export async function updateSettingsAction(p: { unit?: string; timezoneOverride?
 }
 /** Called by the client when the device's IANA zone differs from what we stored (no revalidate: cheap + silent). */
 export async function syncTimezoneAction(tz: string) {
-  const u = await requireUser(); const cur = await svc.getSettings(u.id);
-  if (cur.timezone !== tz) await svc.updateSettings(u.id, { timezone: tz });
+  const u = await requireUser(); await svc.syncTimezone(u.id, tz);
   return { ok: true };
 }
 export async function logMeasurementAction(d: { kind: string; value: number; date?: string }) {
@@ -109,14 +108,6 @@ export async function testPushAction(endpoint?: string) {
   return sendToUser(u.id, { title: "Fortis", body: "Notifications are on. You'll only hear from us when a workout has been idle.", url: "/settings#notifications", tag: "fortis-test" }, endpoint);
 }
 export async function syncIdleAction(s: { active: boolean; startedAt?: string | null; lastActivityAt?: string | null; hours: number }) {
-  const u = await requireUser(); const p = await import("@/lib/push");
-  const r = await p.syncIdle(u.id, s);
-  if (r.needsRun && r.dueAt) {
-    try {
-      const { start } = await import("workflow/api"); const { idleWatchWorkflow } = await import("@/workflows/idle-watch");
-      const run = await start(idleWatchWorkflow, [u.id]);
-      await p.markRun(u.id, run.runId, r.dueAt);
-    } catch (e) { console.error("idle workflow start failed", e); }
-  }
-  return { ok: true, dueAt: r.dueAt?.toISOString() ?? null };
+  const u = await requireUser(); const { syncIdleForUser } = await import("@/lib/idle-sync-server");
+  return syncIdleForUser(u.id, s);
 }

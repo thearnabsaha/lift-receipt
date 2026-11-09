@@ -1,7 +1,6 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { syncTimezoneAction } from "@/app/actions";
 
 /** Keeps the server in the device's current IANA zone: `tz` cookie on every load/focus, and the settings row when it changes. */
 export function TzSync({ stored }: { stored: string | null }) {
@@ -12,7 +11,7 @@ export function TzSync({ stored }: { stored: string | null }) {
       if (!tz) return;
       const prev = document.cookie.match(/(?:^|; )tz=([^;]*)/)?.[1];
       document.cookie = `tz=${encodeURIComponent(tz)}; path=/; max-age=31536000; samesite=lax${location.protocol === "https:" ? "; secure" : ""}`;
-      if (tz !== stored) syncTimezoneAction(tz).catch(() => {});
+      if (tz !== stored) fetch("/api/sync/tz", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tz }), keepalive: true }).catch(() => {});
       if (prev !== undefined && decodeURIComponent(prev) !== tz) router.refresh();
       else if (prev === undefined && tz !== stored) router.refresh();
     };
