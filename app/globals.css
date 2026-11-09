@@ -136,6 +136,11 @@
   html, body {
     overscroll-behavior-y: none;
   }
+  /* In-app routes: the document itself never scrolls (the shell's inner scroller does). */
+  html:has([data-app-shell]), html:has([data-app-shell]) body {
+    height: 100%;
+    overflow: hidden;
+  }
   a, button, input, select, textarea, label, [role="button"] {
     touch-action: manipulation;
   }
