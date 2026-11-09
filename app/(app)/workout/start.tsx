@@ -54,6 +54,8 @@ export function StartWorkout({ routines = [], lastRoutineId = null, plans = {}, 
     else toast.error(rid === "last" ? "No routine used yet. Pick one below." : "That routine no longer exists. Pick one below.");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  // fully prefetch the active-workout screen (exercise list + previous sets) so "Start" opens instantly, not after a server round trip
+  useEffect(() => { router.prefetch("/workout/active", { kind: "full" } as unknown as Parameters<typeof router.prefetch>[1]); }, [router]);
   return (
     <div className="receipt rounded-xl border px-5 py-7 shadow-[0_1px_3px_#0000001a]">
       <p className="mono-label">Quick start{weekday && ` · ${weekday}`}</p>

@@ -37,9 +37,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
           <div className="ml-auto flex items-center gap-1">
             <OfflineBadge />
-            <Link href="/records" aria-label="Records" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/records") && "bg-muted")}><Trophy className="size-4" strokeWidth={1.5} /></Link>
-            <Link href="/tools" aria-label="Tools" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/tools") && "bg-muted")}><Calculator className="size-4" strokeWidth={1.5} /></Link>
-            <Link href="/settings" aria-label="Settings" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/settings") && "bg-muted")}><Settings className="size-4" strokeWidth={1.5} /></Link>
+            <Link prefetch href="/records" aria-label="Records" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/records") && "bg-muted")}><Trophy className="size-4" strokeWidth={1.5} /></Link>
+            <Link prefetch href="/tools" aria-label="Tools" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/tools") && "bg-muted")}><Calculator className="size-4" strokeWidth={1.5} /></Link>
+            <Link prefetch href="/settings" aria-label="Settings" className={cn("inline-flex size-11 items-center justify-center rounded-lg hover:bg-muted", active("/settings") && "bg-muted")}><Settings className="size-4" strokeWidth={1.5} /></Link>
             <ThemeToggle />
           </div>
         </div>
