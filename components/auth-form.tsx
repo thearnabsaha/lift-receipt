@@ -42,7 +42,7 @@ export function AuthForm({ mode, next: rawNext }: { mode: "sign-in" | "sign-up";
         <div className="flex justify-center"><Logo /></div>
         <h1 className="mt-5 text-center text-2xl font-semibold tracking-tight">{mode === "sign-in" ? "Welcome back" : "Create your account"}</h1>
         <p className="mono-label mt-1 text-center">{mode === "sign-in" ? "Sign in to keep logging" : "Free. No card. Ever."}</p>
-        <form onSubmit={submit} className="mt-6 space-y-3">
+        <form method="post" onSubmit={submit} className="mt-6 space-y-3">
           {mode === "sign-up" && <div className="space-y-1.5"><Label htmlFor="name">Name</Label><Input id="name" name="name" autoComplete="name" /></div>}
           {mode === "sign-up" ? (
             <div className="space-y-1.5"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" required autoComplete="email" /></div>
@@ -64,7 +64,7 @@ export function AuthForm({ mode, next: rawNext }: { mode: "sign-in" | "sign-up";
               className="text-base"
             />
           </div>
-          <Button className="h-10 w-full active:translate-y-px" disabled={loading}>{loading ? "…" : mode === "sign-in" ? "Sign in" : "Create account"}</Button>
+          <Button type="submit" className="h-10 w-full active:translate-y-px" disabled={loading}>{loading ? "…" : mode === "sign-in" ? "Sign in" : "Create account"}</Button>
         </form>
         <div className="tear my-5" />
         <p className="text-center text-sm text-muted-foreground">
