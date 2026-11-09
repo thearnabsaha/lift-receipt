@@ -20,11 +20,18 @@ export function AuthForm({ mode, next: rawNext }: { mode: "sign-in" | "sign-up";
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const email = String(f.get("email")), password = String(f.get("password"));
+    const password = String(f.get("password"));
     setLoading(true);
-    const res = mode === "sign-up"
-      ? await authClient.signUp.email({ email, password, name: String(f.get("name") || email.split("@")[0]) })
-      : await authClient.signIn.email({ email, password });
+    let res;
+    if (mode === "sign-up") {
+      const email = String(f.get("email"));
+      res = await authClient.signUp.email({ email, password, name: String(f.get("name") || email.split("@")[0]) });
+    } else {
+      const id = String(f.get("identifier")).trim();
+      res = id.includes("@")
+        ? await authClient.signIn.email({ email: id, password })
+        : await authClient.signIn.username({ username: id, password });
+    }
     setLoading(false);
     if (res.error) return toast.error(res.error.message ?? "Something went wrong");
     router.push(next ?? "/workout"); router.refresh();
@@ -37,8 +44,26 @@ export function AuthForm({ mode, next: rawNext }: { mode: "sign-in" | "sign-up";
         <p className="mono-label mt-1 text-center">{mode === "sign-in" ? "Sign in to keep logging" : "Free. No card. Ever."}</p>
         <form onSubmit={submit} className="mt-6 space-y-3">
           {mode === "sign-up" && <div className="space-y-1.5"><Label htmlFor="name">Name</Label><Input id="name" name="name" autoComplete="name" /></div>}
-          <div className="space-y-1.5"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" required autoComplete="email" /></div>
-          <div className="space-y-1.5"><Label htmlFor="password">Password</Label><Input id="password" name="password" type="password" required minLength={8} autoComplete={mode === "sign-in" ? "current-password" : "new-password"} /></div>
+          {mode === "sign-up" ? (
+            <div className="space-y-1.5"><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" required autoComplete="email" /></div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="identifier">Username or email</Label>
+              <Input id="identifier" name="identifier" type="text" required autoComplete="username" autoCapitalize="none" spellCheck={false} className="text-base" />
+            </div>
+          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              required
+              {...(mode === "sign-up" ? { minLength: 8 } : {})}
+              autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
+              className="text-base"
+            />
+          </div>
           <Button className="h-10 w-full active:translate-y-px" disabled={loading}>{loading ? "…" : mode === "sign-in" ? "Sign in" : "Create account"}</Button>
         </form>
         <div className="tear my-5" />
