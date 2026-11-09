@@ -64,8 +64,6 @@ export default async function WorkoutDetail({ params }: PageProps<"/history/[id]
           <div className="flex justify-between"><span className="text-muted-foreground">PRS</span><span>{prCount}</span></div>
           <div className="flex justify-between text-base font-semibold"><span>TOTAL VOLUME</span><span>{Math.round(toDisplay(workoutVolume(w.exercises), unit)!).toLocaleString()} {unit}</span></div>
         </div>
-        <div aria-hidden className="mx-auto mt-6 h-10 w-48 bg-[repeating-linear-gradient(90deg,currentColor_0_2px,transparent_2px_4px,currentColor_4px_5px,transparent_5px_8px)] opacity-80" />
-        <p className="mono-label mt-2 text-center">Thank you for lifting</p>
       </article>
     </div>
   );

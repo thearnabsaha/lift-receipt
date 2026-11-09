@@ -108,8 +108,6 @@ export function FinishScreen({ s, onClose }: { s: FinishSummary; onClose: () => 
                   </ul>
                 </div>
               )}
-              <div aria-hidden className="mx-auto mt-5 h-7 w-3/4 opacity-70 [background:repeating-linear-gradient(90deg,currentColor_0_2px,transparent_2px_4px,currentColor_4px_5px,transparent_5px_8px,currentColor_8px_11px,transparent_11px_13px)]" />
-              <p className="mono-label mt-2 text-center text-[9px]">Thank you · come again</p>
             </div>
           </div>
         </div>
