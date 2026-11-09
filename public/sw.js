@@ -1,5 +1,5 @@
 // Fortis service worker: offline app shell + static asset cache.
-const VERSION = "lr-v26";
+const VERSION = "lr-v27";
 // Exercise demo drawings: own cache, survives app updates, capped (oldest evicted). Never precached.
 const DEMOS = "lr-demos-v1"; const DEMOS_MAX = 80;
 const SHELL = ["/offline", "/workout", "/workout/active", "/dashboard", "/history", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/icon.svg", "/sounds/click.wav", "/sounds/chime.wav"];
@@ -10,11 +10,15 @@ self.addEventListener("install", (e) => {
 self.addEventListener("message", (e) => { if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
 self.addEventListener("activate", (e) => {
+  // navigation preload: the page request starts while the worker boots (iOS can take 100s of ms to wake a SW)
+  if (self.registration.navigationPreload) e.waitUntil(self.registration.navigationPreload.enable().catch(() => {}));
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter((k) => k !== VERSION && k !== DEMOS).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", (e) => {
   const req = e.request; const url = new URL(req.url);
-  if (req.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
+  if (req.method !== "GET" || url.origin !== location.origin) return;
+  // API navigations (export/backup downloads, auth callbacks): straight to network, reusing the preload so it isn't sent twice
+  if (url.pathname.startsWith("/api/")) { if (req.mode === "navigate") e.respondWith(Promise.resolve(e.preloadResponse).then((pre) => pre || fetch(req))); return; }
   // exercise demos: cache-first in a bounded cache; index.json is stale-while-revalidate
   if (url.pathname.startsWith("/demos/")) {
     if (url.pathname === "/demos/index.json") {
@@ -31,7 +35,8 @@ self.addEventListener("fetch", (e) => {
   }
   // pages & RSC: network-first, fallback to cache, then offline page
   if (req.mode === "navigate" || req.headers.get("RSC")) {
-    e.respondWith(fetch(req).then((res) => {
+    const net = req.mode === "navigate" ? Promise.resolve(e.preloadResponse).then((pre) => pre || fetch(req)) : fetch(req);
+    e.respondWith(net.then((res) => {
       if (res.ok && req.mode === "navigate") { const c = res.clone(); caches.open(VERSION).then((x) => x.put(url.pathname, c)); }
       return res;
     }).catch(async () => (await caches.match(url.pathname)) || (await caches.match(req)) || (req.mode === "navigate" ? caches.match("/offline") : Response.error())));
